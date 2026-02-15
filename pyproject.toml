@@ -1,0 +1,38 @@
+[project]
+name = "pdf-core"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "grpcio>=1.68.0",
+    "grpcio-health-checking>=1.68.0",
+    "grpcio-reflection>=1.68.0",
+    "PyMuPDF>=1.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "commitizen>=4.4",
+    "grpcio-tools>=1.68.0",
+    "pre-commit>=4.0",
+]
+test = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_files = ["pyproject.toml:version"]
+tag_format = "$version"
+bump_message = "release: v$new_version"
+update_changelog_on_bump = true
+changelog_incremental = true
+change_type_map = { feat = "Features", fix = "Bug Fixes", perf = "Performance", revert = "Reverts" }
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

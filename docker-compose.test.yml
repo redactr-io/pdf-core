@@ -1,0 +1,19 @@
+services:
+  pdf-service:
+    build: .
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; ch = grpc.insecure_channel('localhost:50051'); grpc.channel_ready_future(ch).result(timeout=5)"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      pdf-service:
+        condition: service_healthy
+    environment:
+      PDF_SERVICE_HOST: pdf-service:50051
+    command: pytest tests/e2e -v --tb=short

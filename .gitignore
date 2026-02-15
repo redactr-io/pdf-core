@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated proto files (rebuilt at compile time)
+src/pdf_service/generated/redactr/pdf/v1/pdf_service_pb2.py
+src/pdf_service/generated/redactr/pdf/v1/pdf_service_pb2_grpc.py
+src/pdf_service/generated/redactr/pdf/v1/pdf_service_pb2.pyi
