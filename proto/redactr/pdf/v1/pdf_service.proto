@@ -18,41 +18,65 @@ service PdfService {
 
 // Raw PDF bytes input.
 message PdfInput {
+  // The PDF file contents.
   bytes pdf_data = 1;
 }
 
 // --- GetDocumentInfo ---
 
+// Document-level analysis results.
 message DocumentInfoResponse {
+  // Total number of pages in the document.
   int32 page_count = 1;
+  // Size of the input PDF in bytes.
   int64 file_size_bytes = 2;
+  // Whether the PDF is password-protected.
   bool is_encrypted = 3;
+  // Whether any page contains extractable text.
   bool has_text_content = 4;
+  // Whether any page contains annotations.
   bool has_annotations = 5;
+  // Total number of annotations across all pages.
   int32 existing_annotation_count = 6;
+  // Document-level metadata (title, author, etc.).
   DocumentMetadata metadata = 7;
+  // Per-page analysis results.
   repeated PageInfo pages = 8;
 }
 
+// PDF document metadata fields.
 message DocumentMetadata {
+  // Document title.
   string title = 1;
+  // Document author.
   string author = 2;
+  // Software that produced the PDF.
   string producer = 3;
+  // Software that created the original document.
   string creator = 4;
 }
 
+// Per-page analysis results.
 message PageInfo {
+  // Zero-indexed page number.
   int32 page_number = 1;
+  // Whether the page contains extractable text.
   bool has_text = 2;
+  // Whether the page contains embedded images.
   bool has_images = 3;
+  // True if the page has images but no text (likely a scan).
   bool likely_scanned = 4;
+  // Page width in points.
   float width = 5;
+  // Page height in points.
   float height = 6;
 }
 
 // --- ExtractText ---
 
+// Request to extract text from a PDF.
 message ExtractTextRequest {
+  // The PDF file contents.
   bytes pdf_data = 1;
   // Zero-indexed page numbers to extract. Empty means all pages.
   repeated int32 pages = 2;
@@ -62,7 +86,9 @@ message ExtractTextRequest {
   OcrOptions ocr = 4;
 }
 
+// OCR configuration for scanned page text extraction.
 message OcrOptions {
+  // Whether to enable OCR processing.
   bool enabled = 1;
   // Tesseract language code (default: "eng").
   string language = 2;
@@ -70,55 +96,79 @@ message OcrOptions {
   bool force = 3;
 }
 
+// Extracted text for a single page.
 message PageTextResponse {
+  // Zero-indexed page number.
   int32 page_number = 1;
+  // Full extracted text content of the page.
   string text = 2;
+  // Per-line text blocks with bounding boxes (only when include_word_positions is true).
   repeated TextBlock blocks = 3;
 }
 
+// A line of text with its bounding box coordinates.
 message TextBlock {
+  // The text content of this line.
   string text = 1;
+  // Left edge of the bounding box in points.
   float x0 = 2;
+  // Top edge of the bounding box in points.
   float y0 = 3;
+  // Right edge of the bounding box in points.
   float x1 = 4;
+  // Bottom edge of the bounding box in points.
   float y1 = 5;
+  // Index of the parent text block on the page.
   int32 block_number = 6;
+  // Line index within the parent text block.
   int32 line_number = 7;
 }
 
 // --- GetSuggestionAnnotations ---
 
+// Request to generate XFDF suggestion annotations.
 message GetSuggestionAnnotationsRequest {
+  // The PDF file contents.
   bytes pdf_data = 1;
   // Text strings to search for across all pages.
   repeated string texts = 2;
 }
 
+// XFDF annotation suggestions for review before redaction.
 message GetSuggestionAnnotationsResponse {
   // XFDF XML containing highlight annotations for each match.
   string xfdf = 1;
+  // Total number of highlight annotations generated.
   int32 total_suggestions = 2;
   // Per-text, per-page match counts (only pages with matches are included).
   repeated SuggestionResult results = 3;
 }
 
+// Match results for a single text string on a single page.
 message SuggestionResult {
+  // The text string that was searched for.
   string text = 1;
   // Zero-indexed page number.
   int32 page = 2;
+  // Number of times the text was found on this page.
   int32 occurrences_found = 3;
 }
 
 // --- ApplyRedactions ---
 
+// Request to apply redactions from XFDF annotations.
 message ApplyRedactionsRequest {
+  // The PDF file contents.
   bytes pdf_data = 1;
   // XFDF XML with highlight annotations to convert to redactions.
   string xfdf = 2;
 }
 
+// Result of applying redactions to a PDF.
 message ApplyRedactionsResponse {
+  // The redacted PDF file contents.
   bytes pdf_data = 1;
+  // Number of redaction annotations that were applied.
   int32 redactions_applied = 2;
   // SHA-256 hash of the output PDF bytes.
   bytes content_hash = 3;

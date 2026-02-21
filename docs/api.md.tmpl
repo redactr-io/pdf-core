@@ -1,0 +1,27 @@
+# API Reference
+
+{{range .Files}}
+{{range .Services}}
+## {{.Name}}
+
+| Method | Request | Response | Description |
+| ------ | ------- | -------- | ----------- |
+{{range .Methods -}}
+| {{.Name}} | [{{.RequestLongType}}](#{{.RequestFullType | lower | replace "." "-"}}) | {{if .ResponseStreaming}}stream {{end}}[{{.ResponseLongType}}](#{{.ResponseFullType | lower | replace "." "-"}}) | {{nobr .Description}} |
+{{end}}
+{{end}}
+
+## Messages
+{{range .Messages}}
+
+### {{.LongName}}
+
+{{.Description}}
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+{{range .Fields -}}
+| {{.Name}} | {{if .IsMap}}map<{{.LongType}}>{{else}}{{if eq .Label "repeated"}}repeated {{end}}{{.LongType}}{{end}} | {{if (index .Options "deprecated"|default false)}}**Deprecated.** {{end}}{{nobr .Description}} |
+{{end}}
+{{end}}
+{{end}}
