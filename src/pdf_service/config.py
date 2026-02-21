@@ -9,6 +9,3 @@ class ServiceConfig:
     max_message_size: int = field(
         default_factory=lambda: int(os.getenv("MAX_MESSAGE_SIZE", str(50 * 1024 * 1024)))
     )
-    ocr_default_language: str = field(
-        default_factory=lambda: os.getenv("OCR_DEFAULT_LANGUAGE", "eng")
-    )

@@ -4,6 +4,7 @@ from collections.abc import Generator
 import fitz
 
 from pdf_service.core.ocr import ocr_page
+from pdf_service.core.types import PageTextResult
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ def extract_text(
     pages: list[int] | None,
     include_positions: bool,
     ocr_options: dict | None,
-) -> Generator[dict]:
+) -> Generator[PageTextResult]:
     if not pdf_data:
         raise ValueError("Empty PDF data")
 
@@ -22,7 +23,7 @@ def extract_text(
     except Exception:
         raise ValueError("Invalid or corrupt PDF")
 
-    try:
+    with doc:
         if pages:
             page_numbers = pages
         else:
@@ -37,7 +38,6 @@ def extract_text(
                 )
 
         for page_num in page_numbers:
-
             page = doc[page_num]
             page_text = page.get_text()
             blocks = []
@@ -80,5 +80,3 @@ def extract_text(
                 "text": page_text,
                 "blocks": blocks,
             }
-    finally:
-        doc.close()

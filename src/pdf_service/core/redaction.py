@@ -5,12 +5,14 @@ import xml.etree.ElementTree as ET
 
 import fitz
 
+from pdf_service.core.types import RedactionResult
+
 logger = logging.getLogger(__name__)
 
 XFDF_NS = "http://ns.adobe.com/xfdf/"
 
 
-def apply_redactions(pdf_data: bytes, xfdf: str) -> dict:
+def apply_redactions(pdf_data: bytes, xfdf: str) -> RedactionResult:
     if not pdf_data:
         raise ValueError("Empty PDF data")
     if not xfdf:
@@ -21,7 +23,7 @@ def apply_redactions(pdf_data: bytes, xfdf: str) -> dict:
     except Exception:
         raise ValueError("Invalid or corrupt PDF")
 
-    try:
+    with doc:
         try:
             root = ET.fromstring(xfdf)
         except ET.ParseError:
@@ -76,5 +78,3 @@ def apply_redactions(pdf_data: bytes, xfdf: str) -> dict:
             "redactions_applied": redaction_count,
             "content_hash": content_hash,
         }
-    finally:
-        doc.close()

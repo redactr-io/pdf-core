@@ -2,10 +2,12 @@ import logging
 
 import fitz
 
+from pdf_service.core.types import DocumentInfoResult
+
 logger = logging.getLogger(__name__)
 
 
-def get_document_info(pdf_data: bytes) -> dict:
+def get_document_info(pdf_data: bytes) -> DocumentInfoResult:
     if not pdf_data:
         raise ValueError("Empty PDF data")
 
@@ -14,7 +16,7 @@ def get_document_info(pdf_data: bytes) -> dict:
     except Exception:
         raise ValueError("Invalid or corrupt PDF")
 
-    try:
+    with doc:
         if doc.is_encrypted:
             raise ValueError("PDF is encrypted")
 
@@ -68,5 +70,3 @@ def get_document_info(pdf_data: bytes) -> dict:
             },
             "pages": pages,
         }
-    finally:
-        doc.close()

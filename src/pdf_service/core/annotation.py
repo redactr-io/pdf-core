@@ -4,12 +4,14 @@ import xml.etree.ElementTree as ET
 
 import fitz
 
+from pdf_service.core.types import SuggestionAnnotationsResult
+
 logger = logging.getLogger(__name__)
 
 XFDF_NS = "http://ns.adobe.com/xfdf/"
 
 
-def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> dict:
+def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> SuggestionAnnotationsResult:
     if not pdf_data:
         raise ValueError("Empty PDF data")
 
@@ -18,7 +20,7 @@ def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> dict:
     except Exception:
         raise ValueError("Invalid or corrupt PDF")
 
-    try:
+    with doc:
         total_suggestions = 0
         results = []
 
@@ -67,5 +69,3 @@ def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> dict:
             "total_suggestions": total_suggestions,
             "results": results,
         }
-    finally:
-        doc.close()
