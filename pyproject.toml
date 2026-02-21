@@ -13,7 +13,9 @@ dependencies = [
 dev = [
     "commitizen>=4.4",
     "grpcio-tools>=1.68.0",
+    "mypy>=1.14",
     "pre-commit>=4.0",
+    "ruff>=0.9",
 ]
 test = [
     "pytest>=8.0",
@@ -36,3 +38,44 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+src = ["src", "tests"]
+exclude = ["src/pdf_service/generated"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking
+]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["pdf_service"]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["fitz", "fitz.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["grpc", "grpc.*", "grpc_health.*", "grpc_reflection.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pdf_service.grpc.*", "pdf_service.server"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = ["pdf_service.generated.*"]
+ignore_errors = true

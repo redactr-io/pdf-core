@@ -4,25 +4,27 @@ import xml.etree.ElementTree as ET
 
 import fitz
 
-from pdf_service.core.types import SuggestionAnnotationsResult
+from pdf_service.core.types import SuggestionAnnotationsResult, SuggestionResultItem
 
 logger = logging.getLogger(__name__)
 
 XFDF_NS = "http://ns.adobe.com/xfdf/"
 
 
-def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> SuggestionAnnotationsResult:
+def get_suggestion_annotations(
+    pdf_data: bytes, texts: list[str]
+) -> SuggestionAnnotationsResult:
     if not pdf_data:
         raise ValueError("Empty PDF data")
 
     try:
         doc = fitz.open(stream=pdf_data, filetype="pdf")
-    except Exception:
-        raise ValueError("Invalid or corrupt PDF")
+    except Exception as exc:
+        raise ValueError("Invalid or corrupt PDF") from exc
 
     with doc:
         total_suggestions = 0
-        results = []
+        results: list[SuggestionResultItem] = []
 
         root = ET.Element("xfdf", xmlns=XFDF_NS)
         annots_el = ET.SubElement(root, "annots")
@@ -51,17 +53,21 @@ def get_suggestion_annotations(pdf_data: bytes, texts: list[str]) -> SuggestionA
                     total_suggestions += 1
 
                 if occurrences > 0:
-                    results.append({
-                        "text": text,
-                        "page": page_num,
-                        "occurrences_found": occurrences,
-                    })
+                    results.append(
+                        {
+                            "text": text,
+                            "page": page_num,
+                            "occurrences_found": occurrences,
+                        }
+                    )
 
         xfdf_str = ET.tostring(root, encoding="unicode", xml_declaration=True)
 
         logger.info(
             "Generated %d suggestions for %d text queries across %d pages",
-            total_suggestions, len(texts), len(doc),
+            total_suggestions,
+            len(texts),
+            len(doc),
         )
 
         return {

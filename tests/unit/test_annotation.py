@@ -1,10 +1,9 @@
 import uuid
 import xml.etree.ElementTree as ET
 
-import fitz
 import pytest
 
-from pdf_service.core.annotation import get_suggestion_annotations, XFDF_NS
+from pdf_service.core.annotation import XFDF_NS, get_suggestion_annotations
 
 
 class TestGetSuggestionAnnotations:

@@ -1,6 +1,5 @@
 import logging
 import signal
-import sys
 from concurrent import futures
 
 import grpc
@@ -30,9 +29,7 @@ def serve():
     )
 
     # Register PDF service
-    pdf_service_pb2_grpc.add_PdfServiceServicer_to_server(
-        PdfServiceServicer(), server
-    )
+    pdf_service_pb2_grpc.add_PdfServiceServicer_to_server(PdfServiceServicer(), server)
 
     # Health checking
     health_servicer = health.HealthServicer()

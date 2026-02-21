@@ -1,7 +1,7 @@
 import hashlib
 import logging
-from importlib.metadata import version
 import xml.etree.ElementTree as ET
+from importlib.metadata import version
 
 import fitz
 
@@ -20,14 +20,14 @@ def apply_redactions(pdf_data: bytes, xfdf: str) -> RedactionResult:
 
     try:
         doc = fitz.open(stream=pdf_data, filetype="pdf")
-    except Exception:
-        raise ValueError("Invalid or corrupt PDF")
+    except Exception as exc:
+        raise ValueError("Invalid or corrupt PDF") from exc
 
     with doc:
         try:
             root = ET.fromstring(xfdf)
-        except ET.ParseError:
-            raise ValueError("Malformed XFDF")
+        except ET.ParseError as exc:
+            raise ValueError("Malformed XFDF") from exc
 
         # Find highlight elements with or without namespace
         highlights = root.findall(f".//{{{XFDF_NS}}}highlight")

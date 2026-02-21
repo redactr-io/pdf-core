@@ -2,7 +2,7 @@ import logging
 
 import fitz
 
-from pdf_service.core.types import DocumentInfoResult
+from pdf_service.core.types import DocumentInfoResult, PageInfoResult
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +13,8 @@ def get_document_info(pdf_data: bytes) -> DocumentInfoResult:
 
     try:
         doc = fitz.open(stream=pdf_data, filetype="pdf")
-    except Exception:
-        raise ValueError("Invalid or corrupt PDF")
+    except Exception as exc:
+        raise ValueError("Invalid or corrupt PDF") from exc
 
     with doc:
         if doc.is_encrypted:
@@ -23,7 +23,7 @@ def get_document_info(pdf_data: bytes) -> DocumentInfoResult:
         has_text_content = False
         has_annotations = False
         annotation_count = 0
-        pages = []
+        pages: list[PageInfoResult] = []
 
         for i, page in enumerate(doc):
             page_text = page.get_text().strip()
@@ -39,20 +39,24 @@ def get_document_info(pdf_data: bytes) -> DocumentInfoResult:
                 has_annotations = True
                 annotation_count += len(page_annots)
 
-            pages.append({
-                "page_number": i,
-                "has_text": page_has_text,
-                "has_images": page_has_images,
-                "likely_scanned": page_has_images and not page_has_text,
-                "width": page.rect.width,
-                "height": page.rect.height,
-            })
+            pages.append(
+                {
+                    "page_number": i,
+                    "has_text": page_has_text,
+                    "has_images": page_has_images,
+                    "likely_scanned": page_has_images and not page_has_text,
+                    "width": page.rect.width,
+                    "height": page.rect.height,
+                }
+            )
 
         meta = doc.metadata or {}
 
         logger.info(
             "Analyzed %d-page document (%d bytes, %d annotations)",
-            len(doc), len(pdf_data), annotation_count,
+            len(doc),
+            len(pdf_data),
+            annotation_count,
         )
 
         return {

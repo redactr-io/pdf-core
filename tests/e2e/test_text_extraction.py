@@ -11,16 +11,18 @@ class TestExtractText:
         assert "John Smith" in pages[0].text
 
     def test_specific_pages(self, stub, multi_page_pdf):
-        pages = list(stub.ExtractText(
-            pb2.ExtractTextRequest(pdf_data=multi_page_pdf, pages=[1])
-        ))
+        pages = list(
+            stub.ExtractText(pb2.ExtractTextRequest(pdf_data=multi_page_pdf, pages=[1]))
+        )
         assert len(pages) == 1
         assert pages[0].page_number == 1
 
     def test_with_positions(self, stub, text_pdf):
-        pages = list(stub.ExtractText(
-            pb2.ExtractTextRequest(pdf_data=text_pdf, include_word_positions=True)
-        ))
+        pages = list(
+            stub.ExtractText(
+                pb2.ExtractTextRequest(pdf_data=text_pdf, include_word_positions=True)
+            )
+        )
         assert len(pages[0].blocks) > 0
 
     def test_invalid_input(self, stub):

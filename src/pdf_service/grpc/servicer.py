@@ -1,12 +1,11 @@
 import grpc
 
+from pdf_service.core import annotation, document_info, redaction, text_extraction
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2 as pb2
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2_grpc as pb2_grpc
-from pdf_service.core import document_info, text_extraction, annotation, redaction
 
 
 class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
-
     def GetDocumentInfo(self, request, context):
         try:
             result = document_info.get_document_info(request.pdf_data)

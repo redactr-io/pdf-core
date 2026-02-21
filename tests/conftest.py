@@ -1,7 +1,6 @@
 import fitz
 import pytest
 
-
 SENSITIVE_TEXT = (
     "Name: John Smith\n"
     "SSN: 123-45-6789\n"
@@ -133,9 +132,16 @@ def encrypted_pdf() -> bytes:
     perm = fitz.PDF_PERM_ACCESSIBILITY
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp_path = tmp.name
-    doc.save(tmp_path, encryption=fitz.PDF_ENCRYPT_AES_256, user_pw="user", owner_pw="owner", permissions=perm)
+    doc.save(
+        tmp_path,
+        encryption=fitz.PDF_ENCRYPT_AES_256,
+        user_pw="user",
+        owner_pw="owner",
+        permissions=perm,
+    )
     doc.close()
     import os
+
     with open(tmp_path, "rb") as f:
         data = f.read()
     os.unlink(tmp_path)

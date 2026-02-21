@@ -40,9 +40,7 @@ class TestApplyRedactions:
 
     def test_selective_redaction(self, text_pdf):
         """Only redact a subset of suggestions by filtering the XFDF."""
-        annots = get_suggestion_annotations(
-            text_pdf, ["John Smith", "123-45-6789"]
-        )
+        annots = get_suggestion_annotations(text_pdf, ["John Smith", "123-45-6789"])
         # Parse and keep only the first highlight (John Smith)
         root = ET.fromstring(annots["xfdf"])
         ns = "http://ns.adobe.com/xfdf/"

@@ -1,4 +1,4 @@
-.PHONY: proto docs test-unit test-e2e docker-build clean install-hooks release
+.PHONY: proto docs lint typecheck test-unit test-e2e docker-build clean install-hooks release
 
 PROTO_DIR = proto
 GEN_DIR = src/pdf_service/generated
@@ -23,6 +23,13 @@ docs:
 		--doc_out=docs \
 		--doc_opt=docs/api.md.tmpl,api.md \
 		$(PROTO_DIR)/redactr/pdf/v1/pdf_service.proto
+
+lint:
+	ruff check src tests
+	ruff format --check src tests
+
+typecheck:
+	mypy
 
 test-unit:
 	pytest tests/unit -v --cov=src/pdf_service/core

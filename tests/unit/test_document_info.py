@@ -27,6 +27,7 @@ class TestGetDocumentInfo:
 
     def test_reports_annotation_count(self):
         import fitz
+
         doc = fitz.open()
         page = doc.new_page()
         page.insert_text((72, 72), "Hello World", fontsize=12)

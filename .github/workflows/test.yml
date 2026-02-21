@@ -20,6 +20,8 @@ jobs:
           sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
           pip install -e ".[dev,test]"
       - run: make proto
+      - run: make lint
+      - run: make typecheck
       - run: make test-unit
       - run: cz check --rev-range origin/${{ github.event.pull_request.base.ref }}..HEAD
         if: github.event_name == 'pull_request'

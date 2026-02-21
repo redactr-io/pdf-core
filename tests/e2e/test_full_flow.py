@@ -6,7 +6,7 @@ from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2 as pb2
 
 class TestFullFlow:
     def test_suggestion_then_redact_flow(self, stub, text_pdf):
-        """GetSuggestionAnnotations → ApplyRedactions → ExtractText to verify removal."""
+        """Suggest → Redact → Extract to verify removal."""
         # Step 1: Get suggestion annotations
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
@@ -26,9 +26,9 @@ class TestFullFlow:
         assert redact_response.redactions_applied >= 2
 
         # Step 3: Verify content is removed
-        pages = list(stub.ExtractText(
-            pb2.ExtractTextRequest(pdf_data=redact_response.pdf_data)
-        ))
+        pages = list(
+            stub.ExtractText(pb2.ExtractTextRequest(pdf_data=redact_response.pdf_data))
+        )
         text = pages[0].text
         assert "John Smith" not in text
         assert "123-45-6789" not in text
@@ -52,9 +52,7 @@ class TestFullFlow:
                 xfdf=annot_response.xfdf,
             )
         )
-        info2 = stub.GetDocumentInfo(
-            pb2.PdfInput(pdf_data=redact_response.pdf_data)
-        )
+        info2 = stub.GetDocumentInfo(pb2.PdfInput(pdf_data=redact_response.pdf_data))
         assert info2.page_count == info1.page_count
 
     def test_error_propagation(self, stub):
