@@ -45,7 +45,7 @@ clean:
 	find $(GEN_DIR) -name "*.pyi" -delete
 
 install-hooks:
-	pre-commit install --hook-type commit-msg
+	pre-commit install --hook-type pre-commit --hook-type commit-msg
 
 release:
 	cz bump
