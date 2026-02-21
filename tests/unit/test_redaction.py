@@ -75,6 +75,15 @@ class TestApplyRedactions:
         result = apply_redactions(text_pdf, annots["xfdf"])
         assert b"John Smith" not in result["pdf_data"]
 
+    def test_sets_producer_metadata(self, text_pdf):
+        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        result = apply_redactions(text_pdf, annots["xfdf"])
+
+        doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
+        assert doc.metadata["producer"].startswith("PDF Core ")
+        assert "by redactr.io" in doc.metadata["producer"]
+        doc.close()
+
     def test_raises_for_empty_pdf_bytes(self):
         with pytest.raises(ValueError, match="Empty PDF data"):
             apply_redactions(b"", "<xfdf/>")

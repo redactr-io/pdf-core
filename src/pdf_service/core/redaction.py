@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from importlib.metadata import version
 import xml.etree.ElementTree as ET
 
 import fitz
@@ -61,6 +62,9 @@ def apply_redactions(pdf_data: bytes, xfdf: str) -> dict:
 
         for page in doc:
             page.apply_redactions()
+
+        pkg_version = version("pdf-core")
+        doc.set_metadata({"producer": f"PDF Core v{pkg_version} by redactr.io"})
 
         output_bytes = doc.tobytes(garbage=4, deflate=True)
         content_hash = hashlib.sha256(output_bytes).digest()
