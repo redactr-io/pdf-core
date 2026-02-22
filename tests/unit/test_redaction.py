@@ -94,6 +94,16 @@ class TestApplyRedactions:
         with pytest.raises(ValueError, match="Invalid or corrupt PDF"):
             apply_redactions(b"not a pdf", "<xfdf/>")
 
+    def test_output_contains_redact_annotations(self, text_pdf):
+        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        result = apply_redactions(text_pdf, annots["xfdf"])
+
+        doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
+        page = doc[0]
+        redacts = [a for a in (page.annots() or []) if a.type[1] == "Redact"]
+        assert len(redacts) >= 1
+        doc.close()
+
     def test_raises_for_malformed_xfdf(self, text_pdf):
         with pytest.raises(ValueError, match="Malformed XFDF"):
             apply_redactions(text_pdf, "<<<not xml>>>")
