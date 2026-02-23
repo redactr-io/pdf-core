@@ -56,7 +56,25 @@ class SuggestionAnnotationsResult(TypedDict):
     results: list[SuggestionResultItem]
 
 
+class RedactionStyleConfig(TypedDict, total=False):
+    fill_color: str
+    border_color: str
+    text_color: str
+    icon_png: bytes | None
+    label_prefix: str
+
+
+class RedactionLogEntryResult(TypedDict):
+    redaction_id: str
+    page: int
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
 class RedactionResult(TypedDict):
     pdf_data: bytes
     redactions_applied: int
     content_hash: bytes
+    redaction_log: list[RedactionLogEntryResult]

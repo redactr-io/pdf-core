@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import grpc
 
 from pdf_service.core import annotation, document_info, redaction, text_extraction
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2 as pb2
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2_grpc as pb2_grpc
+
+if TYPE_CHECKING:
+    from pdf_service.core.types import RedactionStyleConfig
 
 
 class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
@@ -112,8 +119,26 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
         )
 
     def ApplyRedactions(self, request, context):
+        style_config: RedactionStyleConfig | None = None
+        if request.HasField("style"):
+            s = request.style
+            sc: RedactionStyleConfig = {}
+            if s.fill_color:
+                sc["fill_color"] = s.fill_color
+            if s.border_color:
+                sc["border_color"] = s.border_color
+            if s.text_color:
+                sc["text_color"] = s.text_color
+            if s.icon_png:
+                sc["icon_png"] = s.icon_png
+            if s.label_prefix:
+                sc["label_prefix"] = s.label_prefix
+            style_config = sc
+
         try:
-            result = redaction.apply_redactions(request.pdf_data, request.xfdf)
+            result = redaction.apply_redactions(
+                request.pdf_data, request.xfdf, style_config=style_config
+            )
         except ValueError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
             return
@@ -121,8 +146,21 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
             context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
             return
 
+        log_entries = [
+            pb2.RedactionLogEntry(
+                redaction_id=entry["redaction_id"],
+                page=entry["page"],
+                x0=entry["x0"],
+                y0=entry["y0"],
+                x1=entry["x1"],
+                y1=entry["y1"],
+            )
+            for entry in result["redaction_log"]
+        ]
+
         return pb2.ApplyRedactionsResponse(
             pdf_data=result["pdf_data"],
             redactions_applied=result["redactions_applied"],
             content_hash=result["content_hash"],
+            redaction_log=log_entries,
         )

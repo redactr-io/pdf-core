@@ -156,12 +156,43 @@ message SuggestionResult {
 
 // --- ApplyRedactions ---
 
+// Visual branding style for redacted areas.
+message RedactionStyle {
+  // Fill color hex (e.g. "#005941"). Default: "#000000".
+  string fill_color = 1;
+  // Border color hex. Default: same as fill_color.
+  string border_color = 2;
+  // Reserved: field 3 was cross_color, removed.
+  reserved 3;
+  // Redaction ID text color hex. Default: "#FFFFFF".
+  string text_color = 4;
+  // Optional PNG icon bytes. Omit for no icon.
+  bytes icon_png = 5;
+  // Label prefix before the redaction ID. Default: "ID:".
+  string label_prefix = 6;
+}
+
+// A single entry in the redaction audit log.
+message RedactionLogEntry {
+  // Deterministic ID derived from page and coordinates.
+  string redaction_id = 1;
+  // Zero-indexed page number.
+  int32 page = 2;
+  // Bounding box coordinates in PDF points.
+  float x0 = 3;
+  float y0 = 4;
+  float x1 = 5;
+  float y1 = 6;
+}
+
 // Request to apply redactions from XFDF annotations.
 message ApplyRedactionsRequest {
   // The PDF file contents.
   bytes pdf_data = 1;
   // XFDF XML with highlight annotations to convert to redactions.
   string xfdf = 2;
+  // Optional visual branding for redacted areas. Omit for plain black fill.
+  RedactionStyle style = 3;
 }
 
 // Result of applying redactions to a PDF.
@@ -172,4 +203,6 @@ message ApplyRedactionsResponse {
   int32 redactions_applied = 2;
   // SHA-256 hash of the output PDF bytes.
   bytes content_hash = 3;
+  // Audit log of all redactions applied.
+  repeated RedactionLogEntry redaction_log = 4;
 }

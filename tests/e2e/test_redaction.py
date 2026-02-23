@@ -35,6 +35,45 @@ class TestApplyRedactions:
         )
         assert response.redactions_applied == 0
 
+    def test_returns_redaction_log(self, stub, text_pdf):
+        annot_response = stub.GetSuggestionAnnotations(
+            pb2.GetSuggestionAnnotationsRequest(
+                pdf_data=text_pdf,
+                texts=["John Smith"],
+            )
+        )
+        response = stub.ApplyRedactions(
+            pb2.ApplyRedactionsRequest(
+                pdf_data=text_pdf,
+                xfdf=annot_response.xfdf,
+            )
+        )
+        assert len(response.redaction_log) >= 1
+        entry = response.redaction_log[0]
+        assert len(entry.redaction_id) == 12
+        assert entry.page == 0
+
+    def test_with_redaction_style(self, stub, text_pdf):
+        annot_response = stub.GetSuggestionAnnotations(
+            pb2.GetSuggestionAnnotationsRequest(
+                pdf_data=text_pdf,
+                texts=["John Smith"],
+            )
+        )
+        response = stub.ApplyRedactions(
+            pb2.ApplyRedactionsRequest(
+                pdf_data=text_pdf,
+                xfdf=annot_response.xfdf,
+                style=pb2.RedactionStyle(
+                    fill_color="#005941",
+                    text_color="#FFFFFF",
+                ),
+            )
+        )
+        assert response.redactions_applied >= 1
+        assert len(response.pdf_data) > 0
+        assert len(response.redaction_log) >= 1
+
     def test_invalid_pdf(self, stub):
         with pytest.raises(grpc.RpcError) as exc_info:
             stub.ApplyRedactions(

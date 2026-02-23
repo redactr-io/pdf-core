@@ -24,6 +24,7 @@ Request to apply redactions from XFDF annotations.
 | ----- | ---- | ----------- |
 | pdf_data | bytes | The PDF file contents. |
 | xfdf | string | XFDF XML with highlight annotations to convert to redactions. |
+| style | RedactionStyle | Optional visual branding for redacted areas. Omit for plain black fill. |
 
 
 
@@ -36,6 +37,7 @@ Result of applying redactions to a PDF.
 | pdf_data | bytes | The redacted PDF file contents. |
 | redactions_applied | int32 | Number of redaction annotations that were applied. |
 | content_hash | bytes | SHA-256 hash of the output PDF bytes. |
+| redaction_log | repeated RedactionLogEntry | Audit log of all redactions applied. |
 
 
 
@@ -151,6 +153,35 @@ Raw PDF bytes input.
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | pdf_data | bytes | The PDF file contents. |
+
+
+
+### RedactionLogEntry
+
+A single entry in the redaction audit log.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| redaction_id | string | Deterministic ID derived from page and coordinates. |
+| page | int32 | Zero-indexed page number. |
+| x0 | float | Bounding box coordinates in PDF points. |
+| y0 | float |  |
+| x1 | float |  |
+| y1 | float |  |
+
+
+
+### RedactionStyle
+
+Visual branding style for redacted areas.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| fill_color | string | Fill color hex (e.g. "#005941"). Default: "#000000". |
+| border_color | string | Border color hex. Default: same as fill_color. |
+| text_color | string | Redaction ID text color hex. Default: "#FFFFFF". |
+| icon_png | bytes | Optional PNG icon bytes. Omit for no icon. |
+| label_prefix | string | Label prefix before the redaction ID. Default: "ID:". |
 
 
 
