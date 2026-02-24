@@ -24,13 +24,14 @@ test = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.0.0"
 version_files = ["pyproject.toml:version"]
-tag_format = "$version"
+tag_format = "v$version"
 bump_message = "release: v$new_version"
 update_changelog_on_bump = true
 changelog_incremental = true
 change_type_map = { feat = "Features", fix = "Bug Fixes", perf = "Performance", revert = "Reverts" }
+allowed_prefixes = ["release"]
 
 [build-system]
 requires = ["setuptools>=75.0"]
