@@ -1,6 +1,6 @@
 [project]
 name = "pdf-core"
-version = "0.0.0"
+version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "grpcio>=1.68.0",
@@ -24,7 +24,7 @@ test = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.0"
+version = "0.1.0"
 version_files = ["pyproject.toml:version"]
 tag_format = "v$version"
 bump_message = "release: v$new_version"
