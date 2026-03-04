@@ -1,9 +1,9 @@
 import logging
-import uuid
 import xml.etree.ElementTree as ET
 
 import fitz
 
+from pdf_service.core.branding import generate_redaction_id
 from pdf_service.core.types import SuggestionAnnotationsResult, SuggestionResultItem
 
 logger = logging.getLogger(__name__)
@@ -32,21 +32,24 @@ def get_suggestion_annotations(
         for text in texts:
             for page_num in range(len(doc)):
                 page = doc[page_num]
-                page_height = page.rect.height
                 matches = page.search_for(text)
                 occurrences = len(matches)
 
                 for rect in matches:
-                    annot_name = str(uuid.uuid4())
-                    xfdf_y0 = page_height - rect.y1
-                    xfdf_y1 = page_height - rect.y0
+                    annot_name = generate_redaction_id(
+                        page_num,
+                        rect.x0,
+                        rect.y0,
+                        rect.x1,
+                        rect.y1,
+                    )
 
                     highlight = ET.SubElement(annots_el, "highlight")
                     highlight.set("name", annot_name)
                     highlight.set("page", str(page_num))
                     highlight.set(
                         "rect",
-                        f"{rect.x0:.2f},{xfdf_y0:.2f},{rect.x1:.2f},{xfdf_y1:.2f}",
+                        f"{rect.x0:.2f},{rect.y0:.2f},{rect.x1:.2f},{rect.y1:.2f}",
                     )
                     contents = ET.SubElement(highlight, "contents")
                     contents.text = text

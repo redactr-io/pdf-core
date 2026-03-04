@@ -76,13 +76,8 @@ def apply_redactions(
                 skipped += 1
                 continue
 
-            x0, xfdf_y0, x1, xfdf_y1 = coords
+            x0, y0, x1, y1 = coords
             page = doc[page_num]
-            page_height = page.rect.height
-
-            # Reverse coordinate conversion: XFDF bottom-left → PyMuPDF top-left
-            y0 = page_height - xfdf_y1
-            y1 = page_height - xfdf_y0
 
             rect = fitz.Rect(x0, y0, x1, y1)
             page.add_redact_annot(rect, fill=(0, 0, 0))

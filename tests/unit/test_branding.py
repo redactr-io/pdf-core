@@ -244,8 +244,16 @@ class TestFitLabel:
     def test_falls_back_to_hash_only_when_prefix_too_wide(self):
         """When prefix + truncated ID is too wide, show just the truncated hash."""
         # Width enough for "…ef456" but not "ID: …ef456"
-        truncated_width = fitz.get_text_length("…ef456", fontname="cour", fontsize=7.0)
-        prefixed_width = fitz.get_text_length("ID: …ef456", fontname="cour", fontsize=7.0)
+        truncated_width = fitz.get_text_length(
+            "…ef456",
+            fontname="cour",
+            fontsize=7.0,
+        )
+        prefixed_width = fitz.get_text_length(
+            "ID: …ef456",
+            fontname="cour",
+            fontsize=7.0,
+        )
         available = (truncated_width + prefixed_width) / 2  # between the two
         label = _fit_label("ID:", "abc123def456", 7.0, available)
         assert label == "…ef456"

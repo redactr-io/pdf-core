@@ -1,4 +1,3 @@
-import uuid
 import xml.etree.ElementTree as ET
 
 import pytest
@@ -20,14 +19,16 @@ class TestGetSuggestionAnnotations:
             highlights = root.findall(".//highlight")
         assert len(highlights) >= 1
 
-    def test_highlight_has_uuid_name(self, text_pdf):
+    def test_highlight_has_hash_name(self, text_pdf):
         result = get_suggestion_annotations(text_pdf, ["John Smith"])
         root = ET.fromstring(result["xfdf"])
         highlights = root.findall(f".//{{{XFDF_NS}}}highlight")
         if not highlights:
             highlights = root.findall(".//highlight")
         for hl in highlights:
-            uuid.UUID(hl.get("name"))  # raises if invalid
+            name = hl.get("name")
+            assert len(name) == 12
+            int(name, 16)  # raises if not valid hex
 
     def test_highlight_has_page_and_rect(self, text_pdf):
         result = get_suggestion_annotations(text_pdf, ["John Smith"])
@@ -45,7 +46,7 @@ class TestGetSuggestionAnnotations:
                 float(c)  # raises if not a number
 
     def test_coordinate_sanity(self, text_pdf):
-        """XFDF y-coords should use bottom-left origin (y0 < y1)."""
+        """XFDF coords should have y0 < y1 (top-left origin, y increases downward)."""
         result = get_suggestion_annotations(text_pdf, ["John Smith"])
         root = ET.fromstring(result["xfdf"])
         highlights = root.findall(f".//{{{XFDF_NS}}}highlight")

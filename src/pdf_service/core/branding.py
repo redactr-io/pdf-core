@@ -138,7 +138,12 @@ def _draw_rounded_rect(
     shape.commit()
 
 
-def _fit_label(prefix: str, redaction_id: str, fontsize: float, available_width: float) -> str | None:
+def _fit_label(
+    prefix: str,
+    redaction_id: str,
+    fontsize: float,
+    available_width: float,
+) -> str | None:
     """Build a label that fits within the available width.
 
     Candidates in priority order: full prefixed label, truncated prefixed
@@ -154,7 +159,12 @@ def _fit_label(prefix: str, redaction_id: str, fontsize: float, available_width:
         truncated,
     )
     for label in candidates:
-        if fitz.get_text_length(label, fontname="cour", fontsize=fontsize) <= available_width:
+        width = fitz.get_text_length(
+            label,
+            fontname="cour",
+            fontsize=fontsize,
+        )
+        if width <= available_width:
             return label
     return None
 
