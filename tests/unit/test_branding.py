@@ -7,6 +7,7 @@ from pdf_service.core.branding import (
     MEDIUM_MIN_HEIGHT,
     MEDIUM_MIN_WIDTH,
     BrandingStyle,
+    _fit_label,
     draw_branding,
     generate_redaction_id,
     hex_to_rgb,
@@ -98,7 +99,7 @@ class TestBrandingStyle:
 
 
 class TestDrawBranding:
-    """Test two-tier rendering by checking PyMuPDF drawing counts."""
+    """Test label rendering based on whether text fits in the box."""
 
     def _make_page(self):
         doc = fitz.open()
@@ -117,28 +118,47 @@ class TestDrawBranding:
                     count += 1
         return count
 
-    def test_small_rect_only_rounded_rect(self):
-        """Small rects get a rounded rect with border, no text, no lines."""
+    def test_tiny_rect_no_label(self):
+        """Very small rects where text cannot fit get no label."""
         doc, page = self._make_page()
-        rect = fitz.Rect(0, 0, MEDIUM_MIN_WIDTH - 1, MEDIUM_MIN_HEIGHT - 1)
+        rect = fitz.Rect(0, 0, 10, 5)
         draw_branding(page, rect, "abc123def456", self._default_style())
-        # Rounded rect is composed of lines + curves
-        assert self._count_items(page, "l") >= 4  # sides
-        assert self._count_items(page, "c") >= 4  # corners
-        # No text annotations
+        assert self._count_items(page, "l") >= 4  # rounded rect sides
+        assert self._count_items(page, "c") >= 4  # rounded rect corners
+        annots = list(page.annots() or [])
+        assert len(annots) == 0
+        doc.close()
+
+    def test_wide_but_short_rect_gets_label(self):
+        """A wide but short rect should still get a label if the text fits."""
+        doc, page = self._make_page()
+        rect = fitz.Rect(0, 0, 200, 9)  # Below old MEDIUM_MIN_HEIGHT but wide
+        draw_branding(page, rect, "abc123def456", self._default_style())
+        annots = list(page.annots() or [])
+        freetext = [a for a in annots if a.type[1] == "FreeText"]
+        assert len(freetext) == 1
+        assert "ID:" in freetext[0].info["content"]
+        doc.close()
+
+    def test_narrow_rect_no_label(self):
+        """A narrow rect where even the prefix doesn't fit gets no label."""
+        doc, page = self._make_page()
+        rect = fitz.Rect(0, 0, 8, 15)
+        draw_branding(page, rect, "abc123def456", self._default_style())
         annots = list(page.annots() or [])
         assert len(annots) == 0
         doc.close()
 
     def test_medium_rect_has_id_text(self):
-        """Medium rects show ID text at bottom-right, no cross lines."""
+        """Rects with enough space show ID text (possibly truncated)."""
         doc, page = self._make_page()
         rect = fitz.Rect(0, 0, MEDIUM_MIN_WIDTH + 10, MEDIUM_MIN_HEIGHT + 5)
         draw_branding(page, rect, "abc123def456", self._default_style())
         annots = list(page.annots() or [])
         freetext = [a for a in annots if a.type[1] == "FreeText"]
         assert len(freetext) == 1
-        assert "abc123def456" in freetext[0].info["content"]
+        content = freetext[0].info["content"]
+        assert "ID:" in content
         doc.close()
 
     def test_large_rect_has_text_bottom_right(self):
@@ -198,3 +218,34 @@ class TestDrawBranding:
         # Should not raise
         draw_branding(page, rect, "abc123def456", style)
         doc.close()
+
+
+class TestFitLabel:
+    def test_returns_full_label_when_space_available(self):
+        label = _fit_label("ID:", "abc123def456", 7.0, 200.0)
+        assert label == "ID: abc123def456"
+
+    def test_truncates_to_last_5_when_full_id_too_wide(self):
+        label = _fit_label("ID:", "abc123def456", 7.0, 50.0)
+        assert label == "ID: …ef456"
+
+    def test_returns_none_when_nothing_fits(self):
+        label = _fit_label("ID:", "abc123def456", 7.0, 5.0)
+        assert label is None
+
+    def test_works_with_custom_prefix(self):
+        label = _fit_label("REF:", "abc123def456", 7.0, 200.0)
+        assert label == "REF: abc123def456"
+
+    def test_truncated_id_is_last_5_chars(self):
+        label = _fit_label("ID:", "aabbccddeeff", 5.5, 45.0)
+        assert "…deeff" in label
+
+    def test_falls_back_to_hash_only_when_prefix_too_wide(self):
+        """When prefix + truncated ID is too wide, show just the truncated hash."""
+        # Width enough for "…ef456" but not "ID: …ef456"
+        truncated_width = fitz.get_text_length("…ef456", fontname="cour", fontsize=7.0)
+        prefixed_width = fitz.get_text_length("ID: …ef456", fontname="cour", fontsize=7.0)
+        available = (truncated_width + prefixed_width) / 2  # between the two
+        label = _fit_label("ID:", "abc123def456", 7.0, available)
+        assert label == "…ef456"

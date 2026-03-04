@@ -19,7 +19,7 @@ MEDIUM_MIN_HEIGHT = 10.0
 
 # Icon sizing
 ICON_PADDING = 2.0
-ICON_MAX_SIZE = 20.0
+ICON_MAX_SIZE = 10.0
 
 # Rounded rectangle corner radius (clamped to half the smallest dimension)
 BORDER_RADIUS = 3.0
@@ -138,25 +138,46 @@ def _draw_rounded_rect(
     shape.commit()
 
 
+def _fit_label(prefix: str, redaction_id: str, fontsize: float, available_width: float) -> str | None:
+    """Build a label that fits within the available width.
+
+    Candidates in priority order: full prefixed label, truncated prefixed
+    label, full hash alone, truncated hash alone.  The hash is always
+    prioritised over the prefix — a bare hash is more useful than a bare
+    prefix.  Returns None when nothing fits.
+    """
+    truncated = f"…{redaction_id[-5:]}"
+    candidates = (
+        f"{prefix} {redaction_id}",
+        f"{prefix} {truncated}",
+        redaction_id,
+        truncated,
+    )
+    for label in candidates:
+        if fitz.get_text_length(label, fontname="cour", fontsize=fontsize) <= available_width:
+            return label
+    return None
+
+
 def draw_branding(
     page: fitz.Page,
     rect: fitz.Rect,
     redaction_id: str,
     style: BrandingStyle,
 ) -> None:
-    """Draw branded redaction overlay with two-tier degradation.
+    """Draw branded redaction overlay with graceful degradation.
 
     The branded frame expands outward from the redaction rect by FRAME_PADDING,
     creating a visible coloured border around the viewer's black redaction box.
 
-    Small  (< MEDIUM_MIN_WIDTH x MEDIUM_MIN_HEIGHT): rounded rect + border + logo.
-    Medium+ (>= 30x10): rounded rect + border + logo + ID text (bottom-right).
+    Label rendering is based on whether the text actually fits: the font size
+    is clamped to the available height, and ``_fit_label`` truncates the ID
+    or drops it entirely when the width is too narrow.
     """
     width = rect.width
     height = rect.height
 
     # Expand outward so the branded frame is visible around the black redaction box.
-    is_medium = width >= MEDIUM_MIN_WIDTH and height >= MEDIUM_MIN_HEIGHT
     frame = fitz.Rect(
         rect.x0 - FRAME_PADDING,
         rect.y0 - FRAME_PADDING,
@@ -181,14 +202,17 @@ def draw_branding(
                 frame.y0 + icon_size,
             )
 
-    # Medium+: ID text at bottom-right inside the redaction area — added as
-    # a FreeText annotation so it is not extractable page-content text.
-    if is_medium:
-        label = f"{style.label_prefix} {redaction_id}"
-        fontsize = min(7.0 if is_large else 5.5, height - 4.0)
-        # Push text left edge past the icon so the annotation doesn't cover it
-        text_x0 = icon_rect.x1 if icon_rect else frame.x0
-        if fontsize >= 4.0:
+    # ID text at bottom-right — font size is clamped to the available height
+    # and _fit_label handles width-based truncation, so the label is shown
+    # whenever it physically fits in the box.
+    fontsize = min(7.0 if is_large else 5.5, height - 4.0)
+    text_x0 = icon_rect.x1 if icon_rect else frame.x0
+    if fontsize >= 4.0:
+        # FreeText annotations have ~2pt internal padding per side, so
+        # subtract extra buffer to prevent text wrapping onto a hidden line.
+        available_width = frame.x1 - 2.5 - text_x0 - 6.0
+        label = _fit_label(style.label_prefix, redaction_id, fontsize, available_width)
+        if label is not None:
             text_rect = fitz.Rect(
                 text_x0,
                 frame.y1 - fontsize - 2.0,
@@ -199,11 +223,12 @@ def draw_branding(
                 text_rect,
                 label,
                 fontsize=fontsize,
-                fontname="helv",
+                fontname="cour",
                 text_color=style.text_color,
                 fill_color=style.fill_color,  # match frame background
                 align=2,  # right-aligned
             )
+            annot.set_opacity(0.4)
             annot.set_flags(
                 fitz.PDF_ANNOT_IS_READ_ONLY
                 | fitz.PDF_ANNOT_IS_LOCKED
