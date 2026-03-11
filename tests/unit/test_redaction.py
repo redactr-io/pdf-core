@@ -140,6 +140,31 @@ class TestApplyRedactions:
         assert len(redacts) >= 1
         doc.close()
 
+    def test_second_pass_preserves_existing_branding(self, text_pdf):
+        """Re-redacting a previously redacted PDF must not destroy old logos."""
+        annots1 = get_suggestion_annotations(text_pdf, ["John Smith"])
+        style = {"fill_color": "#005941"}
+        result1 = apply_redactions(text_pdf, annots1["xfdf"], style_config=style)
+
+        # Count images after first pass
+        doc1 = fitz.open(stream=result1["pdf_data"], filetype="pdf")
+        images_pass1 = len(doc1[0].get_images(full=True))
+        doc1.close()
+
+        # Second pass: redact a different term on the same document
+        annots2 = get_suggestion_annotations(result1["pdf_data"], ["123-45-6789"])
+        result2 = apply_redactions(
+            result1["pdf_data"], annots2["xfdf"], style_config=style
+        )
+
+        doc2 = fitz.open(stream=result2["pdf_data"], filetype="pdf")
+        images_pass2 = len(doc2[0].get_images(full=True))
+        doc2.close()
+
+        # Second pass should have at least as many images as the first
+        # (old logos preserved + new logos added)
+        assert images_pass2 >= images_pass1
+
     def test_style_config_changes_fill(self, text_pdf):
         annots = get_suggestion_annotations(text_pdf, ["John Smith"])
         style = {"fill_color": "#005941"}

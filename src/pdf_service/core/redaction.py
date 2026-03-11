@@ -59,6 +59,21 @@ def apply_redactions(
             for tag in annot_types:
                 annotations.extend(root.findall(f".//{tag}"))
 
+        # Remove existing redact annotations left by previous passes.
+        # These are structural markers (often transparent) that would be
+        # re-applied by page.apply_redactions(), destroying logo images
+        # and other branding content inserted alongside them.
+        # We save their rectangles so we can restore them after the new
+        # redactions have been applied.
+        previous_markers: dict[int, list[fitz.Rect]] = defaultdict(list)
+        for page in doc:
+            annots_to_remove = [
+                a for a in page.annots() if a.type[0] == fitz.PDF_ANNOT_REDACT
+            ]
+            for a in annots_to_remove:
+                previous_markers[page.number].append(a.rect)
+                page.delete_annot(a)
+
         redaction_count = 0
         skipped = 0
         # Store (rect, redaction_id) per page
@@ -104,6 +119,14 @@ def apply_redactions(
                     draw_branding(page, rect, rid, branding_style)
                 else:
                     page.add_redact_annot(rect, fill=(0, 0, 0), cross_out=True)
+
+        # Restore structural markers from previous passes
+        for page_num, rects in previous_markers.items():
+            page = doc[page_num]
+            for rect in rects:
+                annot = page.add_redact_annot(rect, cross_out=False)
+                annot.set_opacity(0)
+                annot.update(cross_out=False)
 
         # Build redaction audit log
         redaction_log: list[RedactionLogEntryResult] = []
