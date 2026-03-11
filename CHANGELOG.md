@@ -1,3 +1,13 @@
+## v0.2.0 (2026-03-11)
+
+### Bug Fixes
+
+- prevent existing redaction markers from interfering with new ones
+
+### Features
+
+- add verify redactions rpc
+
 ## v0.1.1 (2026-03-04)
 
 ### Bug Fixes
