@@ -4,12 +4,18 @@ from typing import TYPE_CHECKING
 
 import grpc
 
-from pdf_service.core import annotation, document_info, redaction, text_extraction
+from pdf_service.core import (
+    annotation,
+    document_info,
+    redaction,
+    text_extraction,
+    verification,
+)
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2 as pb2
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2_grpc as pb2_grpc
 
 if TYPE_CHECKING:
-    from pdf_service.core.types import RedactionStyleConfig
+    from pdf_service.core.types import RedactionLogEntryResult, RedactionStyleConfig
 
 
 class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
@@ -163,4 +169,42 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
             redactions_applied=result["redactions_applied"],
             content_hash=result["content_hash"],
             redaction_log=log_entries,
+        )
+
+    def VerifyRedactions(self, request, context):
+        log: list[RedactionLogEntryResult] = [
+            {
+                "redaction_id": e.redaction_id,
+                "page": e.page,
+                "x0": e.x0,
+                "y0": e.y0,
+                "x1": e.x1,
+                "y1": e.y1,
+            }
+            for e in request.redaction_log
+        ]
+
+        try:
+            result = verification.verify_redactions(request.pdf_data, log)
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+            return
+        except Exception as e:
+            context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
+            return
+
+        entries = [
+            pb2.RedactionVerification(
+                redaction_id=e["redaction_id"],
+                page=e["page"],
+                passed=e["passed"],
+                residual_text=e["residual_text"],
+                has_residual_images=e["has_residual_images"],
+            )
+            for e in result["entries"]
+        ]
+
+        return pb2.VerifyRedactionsResponse(
+            all_passed=result["all_passed"],
+            entries=entries,
         )

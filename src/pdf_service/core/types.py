@@ -78,3 +78,16 @@ class RedactionResult(TypedDict):
     redactions_applied: int
     content_hash: bytes
     redaction_log: list[RedactionLogEntryResult]
+
+
+class RedactionVerificationEntry(TypedDict):
+    redaction_id: str
+    page: int
+    passed: bool
+    residual_text: list[str]
+    has_residual_images: bool
+
+
+class VerifyRedactionsResult(TypedDict):
+    all_passed: bool
+    entries: list[RedactionVerificationEntry]

@@ -10,6 +10,7 @@ gRPC microservice for PDF processing, built with Python and PyMuPDF. Provides do
 | `ExtractText` | Server streaming | Streams extracted text page-by-page, with optional OCR for scanned documents |
 | `GetSuggestionAnnotations` | Unary | Searches for text strings and returns XFDF XML with highlight annotations for review |
 | `ApplyRedactions` | Unary | Applies XFDF XML highlight annotations as redactions, with optional branded styling and audit log |
+| `VerifyRedactions` | Unary | Verifies that redacted areas contain no residual text or images |
 
 ## Requirements
 

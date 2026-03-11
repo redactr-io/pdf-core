@@ -14,6 +14,9 @@ service PdfService {
 
   // Applies XFDF highlight annotations as redactions, permanently removing matched content.
   rpc ApplyRedactions(ApplyRedactionsRequest) returns (ApplyRedactionsResponse);
+
+  // Verifies that redacted areas contain no residual text or images.
+  rpc VerifyRedactions(VerifyRedactionsRequest) returns (VerifyRedactionsResponse);
 }
 
 // Raw PDF bytes input.
@@ -205,4 +208,36 @@ message ApplyRedactionsResponse {
   bytes content_hash = 3;
   // Audit log of all redactions applied.
   repeated RedactionLogEntry redaction_log = 4;
+}
+
+// --- VerifyRedactions ---
+
+// Request to verify redacted areas contain no residual content.
+message VerifyRedactionsRequest {
+  // The redacted PDF file contents.
+  bytes pdf_data = 1;
+  // Redaction log entries to verify (as returned by ApplyRedactions).
+  repeated RedactionLogEntry redaction_log = 2;
+}
+
+// Verification result for a single redacted area.
+message RedactionVerification {
+  // Deterministic ID of the redaction being verified.
+  string redaction_id = 1;
+  // Zero-indexed page number.
+  int32 page = 2;
+  // Whether the redacted area is clean.
+  bool passed = 3;
+  // Any text found within the redacted area.
+  repeated string residual_text = 4;
+  // Whether non-branding images were found in the redacted area.
+  bool has_residual_images = 5;
+}
+
+// Result of verifying redacted areas.
+message VerifyRedactionsResponse {
+  // True if all redacted areas passed verification.
+  bool all_passed = 1;
+  // Per-redaction verification results.
+  repeated RedactionVerification entries = 2;
 }

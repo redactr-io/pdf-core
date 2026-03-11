@@ -10,6 +10,7 @@
 | ExtractText | [ExtractTextRequest](#redactr-pdf-v1-extracttextrequest) | stream [PageTextResponse](#redactr-pdf-v1-pagetextresponse) | Streams extracted text page-by-page, with optional word positions and OCR. |
 | GetSuggestionAnnotations | [GetSuggestionAnnotationsRequest](#redactr-pdf-v1-getsuggestionannotationsrequest) | [GetSuggestionAnnotationsResponse](#redactr-pdf-v1-getsuggestionannotationsresponse) | Searches for text strings and returns XFDF XML with highlight annotations for review. |
 | ApplyRedactions | [ApplyRedactionsRequest](#redactr-pdf-v1-applyredactionsrequest) | [ApplyRedactionsResponse](#redactr-pdf-v1-applyredactionsresponse) | Applies XFDF highlight annotations as redactions, permanently removing matched content. |
+| VerifyRedactions | [VerifyRedactionsRequest](#redactr-pdf-v1-verifyredactionsrequest) | [VerifyRedactionsResponse](#redactr-pdf-v1-verifyredactionsresponse) | Verifies that redacted areas contain no residual text or images. |
 
 
 
@@ -171,6 +172,20 @@ A single entry in the redaction audit log.
 
 
 
+### RedactionVerification
+
+Verification result for a single redacted area.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| redaction_id | string | Deterministic ID of the redaction being verified. |
+| page | int32 | Zero-indexed page number. |
+| passed | bool | Whether the redacted area is clean. |
+| residual_text | repeated string | Any text found within the redacted area. |
+| has_residual_images | bool | Whether non-branding images were found in the redacted area. |
+
+
+
 ### RedactionStyle
 
 Visual branding style for redacted areas.
@@ -194,6 +209,28 @@ Match results for a single text string on a single page.
 | text | string | The text string that was searched for. |
 | page | int32 | Zero-indexed page number. |
 | occurrences_found | int32 | Number of times the text was found on this page. |
+
+
+
+### VerifyRedactionsRequest
+
+Request to verify redacted areas contain no residual content.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| pdf_data | bytes | The redacted PDF file contents. |
+| redaction_log | repeated RedactionLogEntry | Redaction log entries to verify (as returned by ApplyRedactions). |
+
+
+
+### VerifyRedactionsResponse
+
+Result of verifying redacted areas.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| all_passed | bool | True if all redacted areas passed verification. |
+| entries | repeated RedactionVerification | Per-redaction verification results. |
 
 
 
