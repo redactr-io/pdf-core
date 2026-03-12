@@ -68,7 +68,7 @@ def apply_redactions(
         previous_markers: dict[int, list[fitz.Rect]] = defaultdict(list)
         for page in doc:
             annots_to_remove = [
-                a for a in page.annots() if a.type[0] == fitz.PDF_ANNOT_REDACT
+                a for a in (page.annots() or []) if a.type[0] == fitz.PDF_ANNOT_REDACT
             ]
             for a in annots_to_remove:
                 previous_markers[page.number].append(a.rect)

@@ -30,7 +30,7 @@ def _branding_rects(page: fitz.Page) -> list[fitz.Rect]:
     """
     tolerance = 2.0
     rects: list[fitz.Rect] = []
-    for annot in page.annots():
+    for annot in page.annots() or []:
         atype = annot.type[0]
         if atype in (fitz.PDF_ANNOT_FREE_TEXT, fitz.PDF_ANNOT_REDACT):
             expanded = fitz.Rect(
@@ -151,11 +151,14 @@ def verify_redactions(
                 }
             )
 
-    all_passed = all(e["passed"] for e in entries)
+    # If entries were submitted but none could be verified (e.g. all pages
+    # out of range), treat as a failure rather than a vacuous pass.
+    all_passed = len(entries) > 0 and all(e["passed"] for e in entries)
 
     logger.info(
-        "Verified %d redactions: %s",
+        "Verified %d of %d redactions: %s",
         len(entries),
+        len(redaction_log),
         "all passed" if all_passed else "failures detected",
     )
 
