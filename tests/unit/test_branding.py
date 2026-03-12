@@ -121,7 +121,7 @@ class TestDrawBranding:
     def test_tiny_rect_no_label(self):
         """Very small rects where text cannot fit get no label."""
         doc, page = self._make_page()
-        rect = fitz.Rect(0, 0, 10, 5)
+        rect = fitz.Rect(0, 0, 15, 10)
         draw_branding(page, rect, "abc123def456", self._default_style())
         assert self._count_items(page, "l") >= 4  # rounded rect sides
         assert self._count_items(page, "c") >= 4  # rounded rect corners
@@ -132,7 +132,7 @@ class TestDrawBranding:
     def test_wide_but_short_rect_gets_label(self):
         """A wide but short rect should still get a label if the text fits."""
         doc, page = self._make_page()
-        rect = fitz.Rect(0, 0, 200, 9)  # Below old MEDIUM_MIN_HEIGHT but wide
+        rect = fitz.Rect(0, 0, 200, 12)  # Short but wide enough for a label
         draw_branding(page, rect, "abc123def456", self._default_style())
         annots = list(page.annots() or [])
         freetext = [a for a in annots if a.type[1] == "FreeText"]
@@ -195,9 +195,9 @@ class TestDrawBranding:
 
         style = BrandingStyle.from_config({"fill_color": "#005941", "icon_png": png})
 
-        # Small rect — icon should still appear
+        # Small rect — icon should still appear (needs enough internal space)
         doc, page = self._make_page()
-        rect = fitz.Rect(10, 20, 10 + MEDIUM_MIN_WIDTH - 1, 20 + MEDIUM_MIN_HEIGHT - 1)
+        rect = fitz.Rect(10, 20, 10 + MEDIUM_MIN_WIDTH, 20 + MEDIUM_MIN_HEIGHT + 4)
         draw_branding(page, rect, "abc123def456", style)
         assert len(page.get_images()) >= 1
         doc.close()

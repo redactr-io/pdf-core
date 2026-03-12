@@ -24,8 +24,8 @@ ICON_MAX_SIZE = 10.0
 # Rounded rectangle corner radius (clamped to half the smallest dimension)
 BORDER_RADIUS = 3.0
 
-# Padding between the branded frame and the redaction annotation
-FRAME_PADDING = 3.0
+# Inward padding from the redaction rect edge to the branded content area
+CONTENT_INSET = 2.0
 
 
 def hex_to_rgb(hex_str: str) -> tuple[float, float, float]:
@@ -177,8 +177,8 @@ def draw_branding(
 ) -> None:
     """Draw branded redaction overlay with graceful degradation.
 
-    The branded frame expands outward from the redaction rect by FRAME_PADDING,
-    creating a visible coloured border around the viewer's black redaction box.
+    The branded frame matches the redaction rect exactly — all branding
+    content (rounded rect, label, icon) is drawn within the redacted area.
 
     Label rendering is based on whether the text actually fits: the font size
     is clamped to the available height, and ``_fit_label`` truncates the ID
@@ -187,47 +187,49 @@ def draw_branding(
     width = rect.width
     height = rect.height
 
-    # Expand outward so the branded frame is visible around the black redaction box.
-    frame = fitz.Rect(
-        rect.x0 - FRAME_PADDING,
-        rect.y0 - FRAME_PADDING,
-        rect.x1 + FRAME_PADDING,
-        rect.y1 + FRAME_PADDING,
-    )
-
-    # Always: filled rounded rectangle with border
-    _draw_rounded_rect(page, frame, BORDER_RADIUS, style.border_color, style.fill_color)
+    # Always: filled rounded rectangle with border (matches redaction rect)
+    _draw_rounded_rect(page, rect, BORDER_RADIUS, style.border_color, style.fill_color)
 
     is_large = width >= LARGE_MIN_WIDTH and height >= LARGE_MIN_HEIGHT
+
+    # Content area inset from the rect edges
+    content = fitz.Rect(
+        rect.x0 + CONTENT_INSET,
+        rect.y0 + CONTENT_INSET,
+        rect.x1 - CONTENT_INSET,
+        rect.y1 - CONTENT_INSET,
+    )
+    if content.is_empty:
+        return
 
     # Compute icon rect up front (needed for text left-margin and image insertion).
     icon_rect = None
     if style.icon_png:
-        icon_size = min(height - 2 * ICON_PADDING, ICON_MAX_SIZE)
+        icon_size = min(content.height - 2 * ICON_PADDING, ICON_MAX_SIZE)
         if icon_size > 4:
             icon_rect = fitz.Rect(
-                frame.x0,
-                frame.y0,
-                frame.x0 + icon_size,
-                frame.y0 + icon_size,
+                rect.x0 + 1.0,
+                rect.y0 + 1.0,
+                rect.x0 + 1.0 + icon_size,
+                rect.y0 + 1.0 + icon_size,
             )
 
     # ID text at bottom-right — font size is clamped to the available height
     # and _fit_label handles width-based truncation, so the label is shown
     # whenever it physically fits in the box.
-    fontsize = min(7.0 if is_large else 5.5, height - 4.0)
-    text_x0 = icon_rect.x1 if icon_rect else frame.x0
+    fontsize = min(7.0 if is_large else 5.5, content.height - 2.0)
+    text_x0 = icon_rect.x1 if icon_rect else content.x0
     if fontsize >= 4.0:
         # FreeText annotations have ~2pt internal padding per side, so
         # subtract extra buffer to prevent text wrapping onto a hidden line.
-        available_width = frame.x1 - 2.5 - text_x0 - 6.0
+        available_width = rect.x1 - text_x0 - 6.0
         label = _fit_label(style.label_prefix, redaction_id, fontsize, available_width)
         if label is not None:
             text_rect = fitz.Rect(
                 text_x0,
-                frame.y1 - fontsize - 2.0,
-                frame.x1 - 2.5,
-                frame.y1,
+                rect.y1 - fontsize - 2.0,
+                rect.x1 - 2.0,
+                rect.y1,
             )
             annot = page.add_freetext_annot(
                 text_rect,
@@ -246,7 +248,7 @@ def draw_branding(
             )
             annot.update()
 
-    # Icon at top-left of frame (all sizes, when icon_png provided and fits).
+    # Icon at top-left of content area (all sizes, when icon_png provided and fits).
     if icon_rect is not None:
         with contextlib.suppress(Exception):
             page.insert_image(icon_rect, stream=style.icon_png)

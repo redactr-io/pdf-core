@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING
 
 import fitz
 
-from pdf_service.core.branding import FRAME_PADDING
-
 # Inset the check rectangle by this amount on each edge to avoid
 # false positives from adjacent text whose bounding box barely
 # touches the redaction boundary (sub-point coordinate precision).
@@ -131,22 +129,14 @@ def verify_redactions(
 
             # --- Check for residual images ---
             has_residual_images = False
-            # The branding frame extends outward by FRAME_PADDING;
-            # icons are placed within that expanded frame area.
-            frame_rect = fitz.Rect(
-                redact_rect.x0 - FRAME_PADDING,
-                redact_rect.y0 - FRAME_PADDING,
-                redact_rect.x1 + FRAME_PADDING,
-                redact_rect.y1 + FRAME_PADDING,
-            )
             for img in page.get_images(full=True):
                 xref = img[0]
                 for img_rect in page.get_image_rects(xref):
                     if not _rect_intersects(check_rect, img_rect):
                         continue
-                    # Ignore images within the branding frame
-                    # (our icon is placed inside the expanded frame)
-                    if _rect_contains(frame_rect, img_rect):
+                    # Ignore images within the redaction rect
+                    # (branding icon is placed inside the redacted area)
+                    if _rect_contains(redact_rect, img_rect):
                         continue
                     has_residual_images = True
 
