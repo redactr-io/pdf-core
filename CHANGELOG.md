@@ -1,3 +1,9 @@
+## v0.2.1 (2026-03-12)
+
+### Bug Fixes
+
+- adjust overaly spacing and margins
+
 ## v0.2.0 (2026-03-11)
 
 ### Bug Fixes
