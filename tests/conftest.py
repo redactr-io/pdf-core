@@ -168,3 +168,120 @@ def large_text_pdf() -> bytes:
     data = doc.tobytes()
     doc.close()
     return data
+
+
+@pytest.fixture
+def pdf_with_filled_square_over_text() -> bytes:
+    """Single page PDF with text and a filled black Square annotation
+    covering the first line of text (no /AP appearance stream — this is
+    the source-of-truth case where pdf.js drops /IC).
+    """
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    annot = page.add_rect_annot(fitz.Rect(70, 88, 220, 112))
+    annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_unfilled_square_over_text() -> bytes:
+    """Same as above but the Square has no fill — should NOT be flagged."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    annot = page.add_rect_annot(fitz.Rect(70, 88, 220, 112))
+    annot.set_colors(stroke=(0, 0, 0))  # no fill
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_filled_square_over_whitespace() -> bytes:
+    """Filled Square with no text or image underneath — should NOT be flagged."""
+    doc = fitz.open()
+    page = doc.new_page()
+    annot = page.add_rect_annot(fitz.Rect(300, 300, 400, 350))
+    annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_ink_over_text() -> bytes:
+    """Ink annotation (a single jagged stroke) drawn over text."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    inks = [
+        [
+            (75, 95),
+            (110, 105),
+            (140, 95),
+            (170, 105),
+            (200, 95),
+            (215, 105),
+        ]
+    ]
+    annot = page.add_ink_annot(inks)
+    annot.set_colors(stroke=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_highlight_over_text() -> bytes:
+    """Highlight annotation over text — out of scope, should NOT be flagged."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    rects = page.search_for("BURIED SECRET DATA")
+    if rects:
+        page.add_highlight_annot(rects[0])
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_filled_circle_over_text() -> bytes:
+    """Filled Circle annotation over text."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    annot = page.add_circle_annot(fitz.Rect(70, 88, 220, 112))
+    annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_filled_polygon_over_text() -> bytes:
+    """Filled Polygon annotation over text."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "BURIED SECRET DATA", fontsize=14)
+    points = [(70, 90), (220, 90), (220, 112), (70, 112)]
+    annot = page.add_polygon_annot(points)
+    annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
