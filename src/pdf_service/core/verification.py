@@ -53,6 +53,64 @@ def _rect_contains(outer: fitz.Rect, inner: fitz.Rect) -> bool:
     return bool(outer.contains(inner))
 
 
+def _check_residual_content(
+    page: fitz.Page,
+    rect: fitz.Rect,
+    branding_rects: list[fitz.Rect],
+) -> tuple[list[str], bool]:
+    """Return (residual_text_spans, has_residual_images) inside `rect`.
+
+    Insets `rect` by _EDGE_TOLERANCE on each edge to avoid flagging text whose
+    bbox barely touches the boundary. Both the text and image checks ignore
+    content fully contained within any `branding_rects` — that's how
+    `verify_redactions` excludes the ID label and the in-rect branding icon
+    it places inside applied redactions. Pass `branding_rects=[]` when no
+    such suppression is wanted (e.g. the risky-annotation detector, which
+    treats every overlapping image as residual content).
+    """
+    check_rect = fitz.Rect(
+        rect.x0 + _EDGE_TOLERANCE,
+        rect.y0 + _EDGE_TOLERANCE,
+        rect.x1 - _EDGE_TOLERANCE,
+        rect.y1 - _EDGE_TOLERANCE,
+    )
+
+    residual_text: list[str] = []
+    if not check_rect.is_empty:
+        text_dict = page.get_text("dict")
+        for block in text_dict.get("blocks", []):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    span_text = span.get("text", "").strip()
+                    if not span_text:
+                        continue
+                    bbox = span.get("bbox", (0, 0, 0, 0))
+                    span_rect = fitz.Rect(bbox)
+                    if not _rect_intersects(check_rect, span_rect):
+                        continue
+                    if any(_rect_contains(b, span_rect) for b in branding_rects):
+                        continue
+                    residual_text.append(span_text)
+
+    has_residual_images = False
+    for img in page.get_images(full=True):
+        xref = img[0]
+        for img_rect in page.get_image_rects(xref):
+            if not _rect_intersects(check_rect, img_rect):
+                continue
+            # Skip images that belong to one of our branding rects (e.g. the
+            # icon placed inside an applied redaction). When `branding_rects`
+            # is empty (the risky-annotation use case), every overlapping
+            # image counts as residual content.
+            if any(_rect_contains(b, img_rect) for b in branding_rects):
+                continue
+            has_residual_images = True
+
+    return residual_text, has_residual_images
+
+
 def verify_redactions(
     pdf_data: bytes,
     redaction_log: list[RedactionLogEntryResult],
@@ -97,48 +155,9 @@ def verify_redactions(
 
             branding = _branding_rects(page)
 
-            # Inset the check area slightly to avoid flagging
-            # adjacent text whose bbox barely touches the edge.
-            check_rect = fitz.Rect(
-                redact_rect.x0 + _EDGE_TOLERANCE,
-                redact_rect.y0 + _EDGE_TOLERANCE,
-                redact_rect.x1 - _EDGE_TOLERANCE,
-                redact_rect.y1 - _EDGE_TOLERANCE,
+            residual_text, has_residual_images = _check_residual_content(
+                page, redact_rect, branding
             )
-
-            # --- Check for residual text ---
-            residual_text: list[str] = []
-            if not check_rect.is_empty:
-                text_dict = page.get_text("dict")
-                for block in text_dict.get("blocks", []):
-                    if block.get("type") != 0:
-                        continue
-                    for line in block.get("lines", []):
-                        for span in line.get("spans", []):
-                            span_text = span.get("text", "").strip()
-                            if not span_text:
-                                continue
-                            bbox = span.get("bbox", (0, 0, 0, 0))
-                            span_rect = fitz.Rect(bbox)
-                            if not _rect_intersects(check_rect, span_rect):
-                                continue
-                            # Ignore text inside branding annotations
-                            if any(_rect_contains(b, span_rect) for b in branding):
-                                continue
-                            residual_text.append(span_text)
-
-            # --- Check for residual images ---
-            has_residual_images = False
-            for img in page.get_images(full=True):
-                xref = img[0]
-                for img_rect in page.get_image_rects(xref):
-                    if not _rect_intersects(check_rect, img_rect):
-                        continue
-                    # Ignore images within the redaction rect
-                    # (branding icon is placed inside the redacted area)
-                    if _rect_contains(redact_rect, img_rect):
-                        continue
-                    has_residual_images = True
 
             passed = len(residual_text) == 0 and not has_residual_images
             entries.append(
