@@ -23,7 +23,9 @@ jobs:
       - run: make lint
       - run: make typecheck
       - run: make test-unit
-      - run: cz check --rev-range origin/${{ github.event.pull_request.base.ref }}..HEAD
+      # Use the PR's head SHA, not HEAD — actions/checkout's default checks out
+      # a synthetic merge commit (`Merge X into Y`) which fails cz validation.
+      - run: cz check --rev-range origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.sha }}
         if: github.event_name == 'pull_request'
 
   e2e:
