@@ -1,3 +1,9 @@
+## v0.3.0 (2026-04-30)
+
+### Features
+
+- detect risky annotations RPC (#1)
+
 ## v0.2.1 (2026-03-12)
 
 ### Bug Fixes
