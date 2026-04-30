@@ -17,6 +17,12 @@ service PdfService {
 
   // Verifies that redacted areas contain no residual text or images.
   rpc VerifyRedactions(VerifyRedactionsRequest) returns (VerifyRedactionsResponse);
+
+  // Detect annotations that look like redactions but don't actually hide
+  // their content (e.g. filled Square boxes or Ink scribbles drawn over
+  // text without the text being removed from the PDF stream).
+  rpc DetectRiskyAnnotations(DetectRiskyAnnotationsRequest)
+      returns (DetectRiskyAnnotationsResponse);
 }
 
 // Raw PDF bytes input.
@@ -240,4 +246,42 @@ message VerifyRedactionsResponse {
   bool all_passed = 1;
   // Per-redaction verification results.
   repeated RedactionVerification entries = 2;
+}
+
+// --- DetectRiskyAnnotations ---
+
+// Request to scan a PDF for annotations that mimic redactions but leave
+// content recoverable underneath.
+message DetectRiskyAnnotationsRequest {
+  // The PDF file contents.
+  bytes pdf_data = 1;
+}
+
+// A single annotation that looks like a redaction but isn't.
+message RiskyAnnotation {
+  // Deterministic identifier derived from page + rect (same algorithm as
+  // RedactionLogEntry.redaction_id).
+  string annotation_id = 1;
+  // Zero-indexed page number.
+  int32 page = 2;
+  // Bounding box coordinates in PDF user space (origin bottom-left).
+  float x0 = 3;
+  float y0 = 4;
+  float x1 = 5;
+  float y1 = 6;
+  // Annotation subtype that triggered the finding.
+  // One of: "Square", "Circle", "Polygon", "Ink".
+  string source_subtype = 7;
+  // True when text was found inside the rect.
+  bool has_residual_text = 8;
+  // True when a non-branding image was found inside the rect.
+  bool has_residual_images = 9;
+}
+
+// Result of scanning for risky annotations.
+message DetectRiskyAnnotationsResponse {
+  // Per-finding details.
+  repeated RiskyAnnotation findings = 1;
+  // Total number of risky annotations found.
+  int32 total_findings = 2;
 }

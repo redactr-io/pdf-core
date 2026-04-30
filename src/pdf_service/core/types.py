@@ -91,3 +91,20 @@ class RedactionVerificationEntry(TypedDict):
 class VerifyRedactionsResult(TypedDict):
     all_passed: bool
     entries: list[RedactionVerificationEntry]
+
+
+class RiskyAnnotationFinding(TypedDict):
+    annotation_id: str
+    page: int
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+    source_subtype: str  # "Square" | "Circle" | "Polygon" | "Ink"
+    has_residual_text: bool
+    has_residual_images: bool
+
+
+class DetectRiskyAnnotationsResult(TypedDict):
+    findings: list[RiskyAnnotationFinding]
+    total_findings: int

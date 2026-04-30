@@ -8,6 +8,7 @@ from pdf_service.core import (
     annotation,
     document_info,
     redaction,
+    risky_annotations,
     text_extraction,
     verification,
 )
@@ -207,4 +208,34 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
         return pb2.VerifyRedactionsResponse(
             all_passed=result["all_passed"],
             entries=entries,
+        )
+
+    def DetectRiskyAnnotations(self, request, context):
+        try:
+            result = risky_annotations.detect_risky_annotations(request.pdf_data)
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+            return
+        except Exception as e:
+            context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
+            return
+
+        findings = [
+            pb2.RiskyAnnotation(
+                annotation_id=f["annotation_id"],
+                page=f["page"],
+                x0=f["x0"],
+                y0=f["y0"],
+                x1=f["x1"],
+                y1=f["y1"],
+                source_subtype=f["source_subtype"],
+                has_residual_text=f["has_residual_text"],
+                has_residual_images=f["has_residual_images"],
+            )
+            for f in result["findings"]
+        ]
+
+        return pb2.DetectRiskyAnnotationsResponse(
+            findings=findings,
+            total_findings=result["total_findings"],
         )
