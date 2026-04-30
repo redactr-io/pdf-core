@@ -1,5 +1,31 @@
+import struct
+import zlib
+
 import fitz
 import pytest
+
+
+def _make_png(width: int, height: int, rgb: bytes = b"\xff\x00\x00") -> bytes:
+    """Hand-build a minimal RGB PNG without pulling in Pillow.
+
+    `rgb` is the per-pixel byte triple repeated across every row.
+    """
+    raw = b""
+    for _ in range(height):
+        raw += b"\x00"  # filter byte
+        raw += rgb * width
+
+    def chunk(tag: bytes, payload: bytes) -> bytes:
+        crc = struct.pack(">I", zlib.crc32(tag + payload) & 0xFFFFFFFF)
+        return struct.pack(">I", len(payload)) + tag + payload + crc
+
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
 
 SENSITIVE_TEXT = (
     "Name: John Smith\n"
@@ -47,29 +73,7 @@ def scanned_pdf() -> bytes:
     """Single page with a large image, no text layer."""
     doc = fitz.open()
     page = doc.new_page()
-
-    # Create a simple image (100x100 red pixel block as PNG)
-    import struct
-    import zlib
-
-    width, height = 100, 100
-    raw_data = b""
-    for _ in range(height):
-        raw_data += b"\x00"  # filter byte
-        raw_data += b"\xff\x00\x00" * width  # RGB red pixels
-
-    def png_chunk(chunk_type, data):
-        c = chunk_type + data
-        crc = struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
-        return struct.pack(">I", len(data)) + c + crc
-
-    png = b"\x89PNG\r\n\x1a\n"
-    png += png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-    png += png_chunk(b"IDAT", zlib.compress(raw_data))
-    png += png_chunk(b"IEND", b"")
-
-    page.insert_image(fitz.Rect(0, 0, 400, 400), stream=png)
-
+    page.insert_image(fitz.Rect(0, 0, 400, 400), stream=_make_png(100, 100))
     data = doc.tobytes()
     doc.close()
     return data
@@ -80,32 +84,14 @@ def mixed_pdf() -> bytes:
     """2 pages: one text, one scanned (image only)."""
     doc = fitz.open()
 
-    # Page 1: text
     page1 = doc.new_page()
     page1.insert_text((72, 72), SENSITIVE_TEXT, fontsize=12)
 
-    # Page 2: image only
     page2 = doc.new_page()
-    import struct
-    import zlib
-
-    width, height = 50, 50
-    raw_data = b""
-    for _ in range(height):
-        raw_data += b"\x00"
-        raw_data += b"\x00\x00\xff" * width
-
-    def png_chunk(chunk_type, data):
-        c = chunk_type + data
-        crc = struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
-        return struct.pack(">I", len(data)) + c + crc
-
-    png = b"\x89PNG\r\n\x1a\n"
-    png += png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-    png += png_chunk(b"IDAT", zlib.compress(raw_data))
-    png += png_chunk(b"IEND", b"")
-
-    page2.insert_image(fitz.Rect(0, 0, 200, 200), stream=png)
+    page2.insert_image(
+        fitz.Rect(0, 0, 200, 200),
+        stream=_make_png(50, 50, rgb=b"\x00\x00\xff"),
+    )
 
     data = doc.tobytes()
     doc.close()
@@ -312,34 +298,14 @@ def pdf_with_ink_over_whitespace() -> bytes:
 @pytest.fixture
 def pdf_with_filled_square_over_image() -> bytes:
     """Filled black Square covering a small embedded image — should be
-    flagged via `has_residual_images`. Uses the same hand-built PNG recipe
-    as `scanned_pdf` so we don't pull in extra dependencies.
+    flagged via `has_residual_images`.
     """
-    import struct
-    import zlib
-
-    width, height = 50, 50
-    raw = b""
-    for _ in range(height):
-        raw += b"\x00"  # filter byte
-        raw += b"\x80\x40\x20" * width  # arbitrary opaque RGB
-
-    def _chunk(tag: bytes, payload: bytes) -> bytes:
-        crc = zlib.crc32(tag + payload).to_bytes(4, "big")
-        return len(payload).to_bytes(4, "big") + tag + payload + crc
-
-    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    idat = zlib.compress(raw)
-    png = (
-        b"\x89PNG\r\n\x1a\n"
-        + _chunk(b"IHDR", ihdr)
-        + _chunk(b"IDAT", idat)
-        + _chunk(b"IEND", b"")
-    )
-
     doc = fitz.open()
     page = doc.new_page()
-    page.insert_image(fitz.Rect(80, 90, 130, 140), stream=png)
+    page.insert_image(
+        fitz.Rect(80, 90, 130, 140),
+        stream=_make_png(50, 50, rgb=b"\x80\x40\x20"),
+    )
     annot = page.add_rect_annot(fitz.Rect(70, 88, 145, 145))
     annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
     annot.set_border(width=1)

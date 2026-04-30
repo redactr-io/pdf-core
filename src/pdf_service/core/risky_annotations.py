@@ -25,26 +25,22 @@ _RISKY_SUBTYPES_BY_TYPE: dict[int, str] = {
     fitz.PDF_ANNOT_INK: "Ink",
 }
 
+# Near-white fills (>= 245/255 on every channel) are treated as transparent
+# against the page background — matches the pdf-lib viewer's guard.
+_NEAR_WHITE_THRESHOLD = 245 / 255
+
 
 def _is_visibly_filled(annot: fitz.Annot) -> bool:
-    """True if the annotation has a non-transparent /IC fill colour.
-
-    Treats near-white (>= 245 on each channel) as effectively transparent
-    against the page background — matches the rule used by the pdf-lib
-    viewer's near-white guard.
-    """
+    """True if the annotation has a non-transparent /IC fill colour."""
     fill = annot.colors.get("fill")
-    if not fill:
+    if not fill or len(fill) < 3:
         return False
-    if any(component > 1.0 for component in fill):
-        # Some PyMuPDF builds return 0–255; normalise to 0–1.
-        normalised = [component / 255 for component in fill]
-    else:
-        normalised = list(fill)
-    if len(normalised) < 3:
-        return False
-    r, g, b = normalised[:3]
-    return not (r >= 245 / 255 and g >= 245 / 255 and b >= 245 / 255)
+    r, g, b = fill[:3]
+    return not (
+        r >= _NEAR_WHITE_THRESHOLD
+        and g >= _NEAR_WHITE_THRESHOLD
+        and b >= _NEAR_WHITE_THRESHOLD
+    )
 
 
 def _is_risky(annot: fitz.Annot, subtype: str) -> bool:
