@@ -285,3 +285,65 @@ def pdf_with_filled_polygon_over_text() -> bytes:
     data = doc.tobytes()
     doc.close()
     return data
+
+
+@pytest.fixture
+def pdf_with_ink_over_whitespace() -> bytes:
+    """Ink annotation drawn over a blank area — should NOT be flagged."""
+    doc = fitz.open()
+    page = doc.new_page()
+    inks = [
+        [
+            (300, 300),
+            (335, 310),
+            (365, 300),
+            (395, 310),
+        ]
+    ]
+    annot = page.add_ink_annot(inks)
+    annot.set_colors(stroke=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+@pytest.fixture
+def pdf_with_filled_square_over_image() -> bytes:
+    """Filled black Square covering a small embedded image — should be
+    flagged via `has_residual_images`. Uses the same hand-built PNG recipe
+    as `scanned_pdf` so we don't pull in extra dependencies.
+    """
+    import struct
+    import zlib
+
+    width, height = 50, 50
+    raw = b""
+    for _ in range(height):
+        raw += b"\x00"  # filter byte
+        raw += b"\x80\x40\x20" * width  # arbitrary opaque RGB
+
+    def _chunk(tag: bytes, payload: bytes) -> bytes:
+        crc = zlib.crc32(tag + payload).to_bytes(4, "big")
+        return len(payload).to_bytes(4, "big") + tag + payload + crc
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    idat = zlib.compress(raw)
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", ihdr)
+        + _chunk(b"IDAT", idat)
+        + _chunk(b"IEND", b"")
+    )
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_image(fitz.Rect(80, 90, 130, 140), stream=png)
+    annot = page.add_rect_annot(fitz.Rect(70, 88, 145, 145))
+    annot.set_colors(stroke=(0, 0, 0), fill=(0, 0, 0))
+    annot.set_border(width=1)
+    annot.update()
+    data = doc.tobytes()
+    doc.close()
+    return data
