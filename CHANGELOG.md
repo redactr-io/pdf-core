@@ -1,3 +1,9 @@
+## v0.4.0 (2026-05-04)
+
+### Features
+
+- add MergePdfs RPC for bundle composition
+
 ## v0.3.0 (2026-04-30)
 
 ### Features

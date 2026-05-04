@@ -23,6 +23,9 @@ service PdfService {
   // text without the text being removed from the PDF stream).
   rpc DetectRiskyAnnotations(DetectRiskyAnnotationsRequest)
       returns (DetectRiskyAnnotationsResponse);
+
+  // Merges multiple PDF files into a single PDF, preserving page order.
+  rpc MergePdfs(MergePdfsRequest) returns (MergePdfsResponse);
 }
 
 // Raw PDF bytes input.
@@ -284,4 +287,20 @@ message DetectRiskyAnnotationsResponse {
   repeated RiskyAnnotation findings = 1;
   // Total number of risky annotations found.
   int32 total_findings = 2;
+}
+
+// --- MergePdfs ---
+
+// Request to merge multiple PDFs into one.
+message MergePdfsRequest {
+  // Ordered list of PDF byte strings to concatenate, in final document order.
+  repeated bytes pdfs = 1;
+}
+
+// Result of merging PDFs.
+message MergePdfsResponse {
+  // The merged PDF file contents.
+  bytes pdf_data = 1;
+  // Total page count of the merged document.
+  int32 page_count = 2;
 }

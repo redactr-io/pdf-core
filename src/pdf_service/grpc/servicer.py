@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import grpc
+import pymupdf
 
 from pdf_service.core import (
     annotation,
@@ -238,4 +239,25 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
         return pb2.DetectRiskyAnnotationsResponse(
             findings=findings,
             total_findings=result["total_findings"],
+        )
+
+    def MergePdfs(self, request, context):
+        """Merge multiple PDFs into a single document, preserving page order."""
+        if len(request.pdfs) == 0:
+            raise ValueError("at least one PDF required")
+
+        output = pymupdf.open()
+        try:
+            for pdf_bytes in request.pdfs:
+                with pymupdf.open(stream=pdf_bytes, filetype="pdf") as src:
+                    output.insert_pdf(src)
+
+            merged_bytes = output.tobytes()
+            page_count = len(output)
+        finally:
+            output.close()
+
+        return pb2.MergePdfsResponse(
+            pdf_data=merged_bytes,
+            page_count=page_count,
         )
