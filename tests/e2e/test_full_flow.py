@@ -11,7 +11,10 @@ class TestFullFlow:
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith", "123-45-6789"],
+                suggestions=[
+                    pb2.SuggestionInput(text="John Smith"),
+                    pb2.SuggestionInput(text="123-45-6789"),
+                ],
             )
         )
         assert annot_response.total_annotations >= 2
@@ -42,7 +45,7 @@ class TestFullFlow:
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith"],
+                suggestions=[pb2.SuggestionInput(text="John Smith")],
             )
         )
 
@@ -69,7 +72,7 @@ class TestFullFlow:
             stub.GetSuggestionAnnotations(
                 pb2.GetSuggestionAnnotationsRequest(
                     pdf_data=b"bad",
-                    texts=["x"],
+                    suggestions=[pb2.SuggestionInput(text="x")],
                 )
             )
         assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
