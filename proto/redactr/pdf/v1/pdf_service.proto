@@ -142,28 +142,65 @@ message TextBlock {
 message GetSuggestionAnnotationsRequest {
   // The PDF file contents.
   bytes pdf_data = 1;
-  // Text strings to search for across all pages.
-  repeated string texts = 2;
+  // Per-suggestion inputs to localise on the PDF. Each input's metadata
+  // fields (reason, confidence, explanation, recommendation) are treated
+  // as opaque passthrough — they are echoed back on every Annotation
+  // produced from the input.
+  repeated SuggestionInput suggestions = 2;
+}
+
+// One per-suggestion input — text to find plus opaque metadata that
+// pdf-core echoes back on each Annotation.
+message SuggestionInput {
+  // The text string to search for.
+  string text = 1;
+  // Optional 0-indexed page filter. Omitted means search all pages;
+  // present means search only that page (used to disambiguate when the
+  // same text appears on multiple pages).
+  optional int32 page_number = 2;
+  // Opaque metadata — pdf-core does not interpret these, just echoes
+  // them on each resulting Annotation. The fields happen to mirror
+  // agents-core's Suggestion shape but are not contractually coupled.
+  string reason         = 3;
+  float  confidence     = 4;
+  string explanation    = 5;
+  string recommendation = 6;
 }
 
 // XFDF annotation suggestions for review before redaction.
 message GetSuggestionAnnotationsResponse {
-  // XFDF XML containing highlight annotations for each match.
+  // XFDF XML containing highlight annotations for each match. Used by
+  // ApplyRedactions downstream; consumers that just need annotation
+  // metadata can use `annotations` directly.
   string xfdf = 1;
-  // Total number of highlight annotations generated.
+  // Total number of highlight annotations generated (sum of `annotations`).
   int32 total_suggestions = 2;
-  // Per-text, per-page match counts (only pages with matches are included).
-  repeated SuggestionResult results = 3;
+  // Per-rect annotations with input metadata echoed.
+  repeated Annotation annotations = 3;
 }
 
-// Match results for a single text string on a single page.
-message SuggestionResult {
-  // The text string that was searched for.
-  string text = 1;
-  // Zero-indexed page number.
-  int32 page = 2;
-  // Number of times the text was found on this page.
-  int32 occurrences_found = 3;
+// A single localised annotation, generated from a SuggestionInput's
+// text being matched at a specific rect on a specific page. Carries
+// the input's metadata fields verbatim.
+message Annotation {
+  // Deterministic ID derived from page + rect (same algorithm as
+  // RedactionLogEntry.redaction_id).
+  string annotation_id = 1;
+  // Zero-indexed page number where the match was found.
+  int32  page = 2;
+  // Exact text matched (echoed from the input).
+  string text = 3;
+  // Bounding box in PDF user space (origin top-left).
+  float  x0 = 4;
+  float  y0 = 5;
+  float  x1 = 6;
+  float  y1 = 7;
+  // Echoed metadata from the originating SuggestionInput. pdf-core does
+  // not interpret any of these.
+  string reason         = 8;
+  float  confidence     = 9;
+  string explanation    = 10;
+  string recommendation = 11;
 }
 
 // --- ApplyRedactions ---
