@@ -11,10 +11,10 @@ class TestGetSuggestionAnnotations:
         response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith"],
+                suggestions=[pb2.SuggestionInput(text="John Smith")],
             )
         )
-        assert response.total_suggestions >= 1
+        assert response.total_annotations >= 1
         assert len(response.xfdf) > 0
         # Should be valid XML
         ET.fromstring(response.xfdf)
@@ -23,26 +23,29 @@ class TestGetSuggestionAnnotations:
         response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith", "123-45-6789"],
+                suggestions=[
+                    pb2.SuggestionInput(text="John Smith"),
+                    pb2.SuggestionInput(text="123-45-6789"),
+                ],
             )
         )
-        assert response.total_suggestions >= 2
+        assert response.total_annotations >= 2
 
     def test_no_match(self, stub, text_pdf):
         response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["nonexistent"],
+                suggestions=[pb2.SuggestionInput(text="nonexistent")],
             )
         )
-        assert response.total_suggestions == 0
+        assert response.total_annotations == 0
 
     def test_invalid_input(self, stub):
         with pytest.raises(grpc.RpcError) as exc_info:
             stub.GetSuggestionAnnotations(
                 pb2.GetSuggestionAnnotationsRequest(
                     pdf_data=b"bad",
-                    texts=["test"],
+                    suggestions=[pb2.SuggestionInput(text="test")],
                 )
             )
         assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT

@@ -10,7 +10,7 @@ class TestApplyRedactions:
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith"],
+                suggestions=[pb2.SuggestionInput(text="John Smith")],
             )
         )
         # Apply redactions using the XFDF
@@ -39,7 +39,7 @@ class TestApplyRedactions:
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith"],
+                suggestions=[pb2.SuggestionInput(text="John Smith")],
             )
         )
         response = stub.ApplyRedactions(
@@ -57,7 +57,7 @@ class TestApplyRedactions:
         annot_response = stub.GetSuggestionAnnotations(
             pb2.GetSuggestionAnnotationsRequest(
                 pdf_data=text_pdf,
-                texts=["John Smith"],
+                suggestions=[pb2.SuggestionInput(text="John Smith")],
             )
         )
         response = stub.ApplyRedactions(

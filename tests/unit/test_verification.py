@@ -10,7 +10,7 @@ from pdf_service.core.verification import verify_redactions
 class TestVerifyRedactions:
     def test_clean_redaction_passes(self, text_pdf):
         """Properly redacted areas should pass verification."""
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         vr = verify_redactions(result["pdf_data"], result["redaction_log"])
@@ -28,7 +28,7 @@ class TestVerifyRedactions:
             "text_color": "#FFFFFF",
             "label_prefix": "ID:",
         }
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"], style_config=style)
 
         vr = verify_redactions(result["pdf_data"], result["redaction_log"])
@@ -71,7 +71,9 @@ class TestVerifyRedactions:
 
     def test_multiple_redactions_verified(self, text_pdf):
         """All redactions from a multi-term run are verified."""
-        annots = get_suggestion_annotations(text_pdf, ["John Smith", "123-45-6789"])
+        annots = get_suggestion_annotations(
+            text_pdf, [{"text": "John Smith"}, {"text": "123-45-6789"}]
+        )
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         vr = verify_redactions(result["pdf_data"], result["redaction_log"])
@@ -99,11 +101,11 @@ class TestVerifyRedactions:
             "text_color": "#FFFFFF",
         }
         # First pass
-        a1 = get_suggestion_annotations(text_pdf, ["John Smith"])
+        a1 = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         r1 = apply_redactions(text_pdf, a1["xfdf"], style_config=style)
 
         # Second pass on already-redacted PDF
-        a2 = get_suggestion_annotations(r1["pdf_data"], ["123-45-6789"])
+        a2 = get_suggestion_annotations(r1["pdf_data"], [{"text": "123-45-6789"}])
         r2 = apply_redactions(r1["pdf_data"], a2["xfdf"], style_config=style)
 
         # Verify second pass redactions
