@@ -10,7 +10,7 @@ from pdf_service.core.redaction import apply_redactions
 
 class TestApplyRedactions:
     def test_removes_targeted_text(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
@@ -19,7 +19,7 @@ class TestApplyRedactions:
         doc.close()
 
     def test_non_targeted_text_survives(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
@@ -28,19 +28,23 @@ class TestApplyRedactions:
         doc.close()
 
     def test_returns_correct_redaction_count(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith", "123-45-6789"])
+        annots = get_suggestion_annotations(
+            text_pdf, [{"text": "John Smith"}, {"text": "123-45-6789"}]
+        )
         result = apply_redactions(text_pdf, annots["xfdf"])
         assert result["redactions_applied"] >= 2
 
     def test_returns_sha256_hash(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
         expected_hash = hashlib.sha256(result["pdf_data"]).digest()
         assert result["content_hash"] == expected_hash
 
     def test_selective_redaction(self, text_pdf):
         """Only redact a subset of suggestions by filtering the XFDF."""
-        annots = get_suggestion_annotations(text_pdf, ["John Smith", "123-45-6789"])
+        annots = get_suggestion_annotations(
+            text_pdf, [{"text": "John Smith"}, {"text": "123-45-6789"}]
+        )
         # Parse and keep only the first highlight (John Smith)
         root = ET.fromstring(annots["xfdf"])
         ns = "http://ns.adobe.com/xfdf/"
@@ -69,12 +73,12 @@ class TestApplyRedactions:
         doc.close()
 
     def test_garbage_collection_removes_redacted_bytes(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
         assert b"John Smith" not in result["pdf_data"]
 
     def test_sets_producer_metadata(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
@@ -95,7 +99,7 @@ class TestApplyRedactions:
             apply_redactions(b"not a pdf", "<xfdf/>")
 
     def test_output_contains_redact_annotations(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
 
         doc = fitz.open(stream=result["pdf_data"], filetype="pdf")
@@ -109,7 +113,7 @@ class TestApplyRedactions:
             apply_redactions(text_pdf, "<<<not xml>>>")
 
     def test_redaction_log_returned(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"])
         assert "redaction_log" in result
         assert len(result["redaction_log"]) >= 1
@@ -122,7 +126,7 @@ class TestApplyRedactions:
         assert "y1" in entry
 
     def test_redaction_log_deterministic_ids(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result1 = apply_redactions(text_pdf, annots["xfdf"])
         result2 = apply_redactions(text_pdf, annots["xfdf"])
         ids1 = [e["redaction_id"] for e in result1["redaction_log"]]
@@ -130,7 +134,7 @@ class TestApplyRedactions:
         assert ids1 == ids2
 
     def test_style_none_preserves_behavior(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         result = apply_redactions(text_pdf, annots["xfdf"], style_config=None)
         assert result["redactions_applied"] >= 1
         # No branding drawn — just the standard Redact annotations
@@ -142,7 +146,7 @@ class TestApplyRedactions:
 
     def test_second_pass_preserves_existing_branding(self, text_pdf):
         """Re-redacting a previously redacted PDF must not destroy old logos."""
-        annots1 = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots1 = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         style = {"fill_color": "#005941"}
         result1 = apply_redactions(text_pdf, annots1["xfdf"], style_config=style)
 
@@ -152,7 +156,9 @@ class TestApplyRedactions:
         doc1.close()
 
         # Second pass: redact a different term on the same document
-        annots2 = get_suggestion_annotations(result1["pdf_data"], ["123-45-6789"])
+        annots2 = get_suggestion_annotations(
+            result1["pdf_data"], [{"text": "123-45-6789"}]
+        )
         result2 = apply_redactions(
             result1["pdf_data"], annots2["xfdf"], style_config=style
         )
@@ -166,7 +172,7 @@ class TestApplyRedactions:
         assert images_pass2 >= images_pass1
 
     def test_style_config_changes_fill(self, text_pdf):
-        annots = get_suggestion_annotations(text_pdf, ["John Smith"])
+        annots = get_suggestion_annotations(text_pdf, [{"text": "John Smith"}])
         style = {"fill_color": "#005941"}
         result = apply_redactions(text_pdf, annots["xfdf"], style_config=style)
         assert result["redactions_applied"] >= 1

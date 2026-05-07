@@ -1,4 +1,5 @@
 """Tests for the MergePdfs RPC."""
+
 import pymupdf
 
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2
@@ -50,5 +51,6 @@ def test_merge_pdfs_empty_input_raises():
     request = pdf_service_pb2.MergePdfsRequest(pdfs=[])
 
     import pytest
+
     with pytest.raises(ValueError, match="at least one PDF required"):
         servicer.MergePdfs(request, context=None)

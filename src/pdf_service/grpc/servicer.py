@@ -17,7 +17,11 @@ from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2 as pb2
 from pdf_service.generated.redactr.pdf.v1 import pdf_service_pb2_grpc as pb2_grpc
 
 if TYPE_CHECKING:
-    from pdf_service.core.types import RedactionLogEntryResult, RedactionStyleConfig
+    from pdf_service.core.types import (
+        RedactionLogEntryResult,
+        RedactionStyleConfig,
+        SuggestionInputItem,
+    )
 
 
 class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
@@ -100,9 +104,22 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
             context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
 
     def GetSuggestionAnnotations(self, request, context):
+        suggestion_inputs: list[SuggestionInputItem] = [
+            {
+                "text": s.text,
+                # proto3 optional: HasField returns False when unset.
+                "page_number": s.page_number if s.HasField("page_number") else None,
+                "reason": s.reason,
+                "confidence": s.confidence,
+                "explanation": s.explanation,
+                "recommendation": s.recommendation,
+            }
+            for s in request.suggestions
+        ]
+
         try:
             result = annotation.get_suggestion_annotations(
-                request.pdf_data, list(request.texts)
+                request.pdf_data, suggestion_inputs
             )
         except ValueError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
@@ -111,19 +128,27 @@ class PdfServiceServicer(pb2_grpc.PdfServiceServicer):
             context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
             return
 
-        results = [
-            pb2.SuggestionResult(
-                text=r["text"],
-                page=r["page"],
-                occurrences_found=r["occurrences_found"],
+        annotations = [
+            pb2.Annotation(
+                annotation_id=a["annotation_id"],
+                page=a["page"],
+                text=a["text"],
+                x0=a["x0"],
+                y0=a["y0"],
+                x1=a["x1"],
+                y1=a["y1"],
+                reason=a["reason"],
+                confidence=a["confidence"],
+                explanation=a["explanation"],
+                recommendation=a["recommendation"],
             )
-            for r in result["results"]
+            for a in result["annotations"]
         ]
 
         return pb2.GetSuggestionAnnotationsResponse(
             xfdf=result["xfdf"],
-            total_suggestions=result["total_suggestions"],
-            results=results,
+            total_annotations=result["total_annotations"],
+            annotations=annotations,
         )
 
     def ApplyRedactions(self, request, context):

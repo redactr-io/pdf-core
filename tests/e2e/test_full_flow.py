@@ -14,7 +14,7 @@ class TestFullFlow:
                 texts=["John Smith", "123-45-6789"],
             )
         )
-        assert annot_response.total_suggestions >= 2
+        assert annot_response.total_annotations >= 2
 
         # Step 2: Apply redactions with the XFDF
         redact_response = stub.ApplyRedactions(

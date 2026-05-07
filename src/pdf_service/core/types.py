@@ -44,30 +44,8 @@ class PageTextResult(TypedDict):
     blocks: list[TextBlockResult]
 
 
-class SuggestionResultItem(TypedDict):
-    """[KEEP — Phase 2 removes]"""
-
-    text: str
-    page: int
-    occurrences_found: int
-
-
-class SuggestionAnnotationsResult(TypedDict):
-    """Output of get_suggestion_annotations.
-
-    [KEEP — Phase 2 swaps `results` for `annotations`]
-    """
-
-    xfdf: str
-    total_suggestions: int
-    results: list[SuggestionResultItem]
-
-
 class SuggestionInputItem(TypedDict, total=False):
     """Input shape passed to get_suggestion_annotations.
-
-    Phase 2 uses this to type the new richer input. Phase 1 does not yet
-    consume it — types.py declares it ahead of the implementation rewrite.
 
     `text` is required (despite total=False; Required[] enforces this even
     with total=False). `page_number` is optional (None = search all pages,
@@ -106,6 +84,14 @@ class AnnotationResult(TypedDict):
     confidence: float
     explanation: str
     recommendation: str
+
+
+class SuggestionAnnotationsResult(TypedDict):
+    """Output of get_suggestion_annotations."""
+
+    xfdf: str
+    total_annotations: int
+    annotations: list[AnnotationResult]
 
 
 class RedactionStyleConfig(TypedDict, total=False):

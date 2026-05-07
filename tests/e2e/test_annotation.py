@@ -14,7 +14,7 @@ class TestGetSuggestionAnnotations:
                 texts=["John Smith"],
             )
         )
-        assert response.total_suggestions >= 1
+        assert response.total_annotations >= 1
         assert len(response.xfdf) > 0
         # Should be valid XML
         ET.fromstring(response.xfdf)
@@ -26,7 +26,7 @@ class TestGetSuggestionAnnotations:
                 texts=["John Smith", "123-45-6789"],
             )
         )
-        assert response.total_suggestions >= 2
+        assert response.total_annotations >= 2
 
     def test_no_match(self, stub, text_pdf):
         response = stub.GetSuggestionAnnotations(
@@ -35,7 +35,7 @@ class TestGetSuggestionAnnotations:
                 texts=["nonexistent"],
             )
         )
-        assert response.total_suggestions == 0
+        assert response.total_annotations == 0
 
     def test_invalid_input(self, stub):
         with pytest.raises(grpc.RpcError) as exc_info:

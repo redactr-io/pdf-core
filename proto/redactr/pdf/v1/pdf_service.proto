@@ -173,8 +173,8 @@ message GetSuggestionAnnotationsResponse {
   // ApplyRedactions downstream; consumers that just need annotation
   // metadata can use `annotations` directly.
   string xfdf = 1;
-  // Total number of highlight annotations generated (sum of `annotations`).
-  int32 total_suggestions = 2;
+  // Total number of annotations produced (== len(annotations)).
+  int32 total_annotations = 2;
   // Per-rect annotations with input metadata echoed.
   repeated Annotation annotations = 3;
 }

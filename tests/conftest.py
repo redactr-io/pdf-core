@@ -103,7 +103,10 @@ def suggestion_xfdf(text_pdf) -> str:
     """XFDF with highlight suggestions for John Smith."""
     from pdf_service.core.annotation import get_suggestion_annotations
 
-    result = get_suggestion_annotations(text_pdf, ["John Smith"])
+    result = get_suggestion_annotations(
+        text_pdf,
+        [{"text": "John Smith"}],
+    )
     return result["xfdf"]
 
 
