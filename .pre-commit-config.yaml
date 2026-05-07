@@ -10,3 +10,11 @@ repos:
     hooks:
       - id: commitizen
         stages: [commit-msg]
+  - repo: local
+    hooks:
+      - id: regenerate-proto-stubs
+        name: Regenerate proto stubs
+        entry: make proto
+        language: system
+        files: ^proto/.*\.proto$
+        pass_filenames: false
