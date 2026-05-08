@@ -1,22 +1,8 @@
-## Unreleased
+## v0.5.0 (2026-05-08)
 
-### BREAKING CHANGE
+### Features
 
-- `GetSuggestionAnnotationsRequest`: `repeated string texts` replaced with
-  `repeated SuggestionInput suggestions`. Each input carries the text plus
-  optional `page_number` (0-indexed; omitted = all pages — preserves Pro's
-  existing behaviour) plus opaque metadata fields (`reason`, `confidence`,
-  `explanation`, `recommendation`) that are echoed onto each output annotation.
-- `GetSuggestionAnnotationsResponse`: `repeated SuggestionResult results`
-  (per-text aggregate counts) replaced with `repeated Annotation annotations`
-  (per-rect entries with coords + echoed metadata). The aggregate
-  `total_suggestions` count is renamed to `total_annotations` to match its
-  semantics (count of rects, not inputs). The `xfdf` field is unchanged.
-- New `SuggestionInput` and `Annotation` proto messages. `SuggestionResult`
-  is removed.
-
-Coordinated release required — Pro and platform must regenerate stubs and
-update their callsites in the same release window.
+- SuggestionInput shape — breaking proto change to GetSuggestionAnnotations (#2)
 
 ## v0.4.0 (2026-05-04)
 
